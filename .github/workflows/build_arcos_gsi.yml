@@ -23,20 +23,23 @@ jobs:
           sudo apt-get install -y android-sdk-libsparse-utils e2fsprogs aapt zip unzip wget curl jq xz-utils
 
       - name: Download Base Android 16 GSI (TrebleDroid AOSP + GApps)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p work && cd work
           echo "Fetching latest Android 16 arm64-ab-gapps GSI URL..."
           
-          # Automatically grabs the latest Android 16 AOSP GApps build from ponces/treble_aosp
-          DOWNLOAD_URL=$(curl -s https://api.github.com/repos/ponces/treble_aosp/releases | jq -r '.[].assets[] | select(.name | test("system-.*arm64-ab-gapps.*\\.img\\.xz$")) | .browser_download_url' | head -n 1)
+          # Query ponces/treble_aosp with GH_TOKEN to avoid rate limits, matching aosp-arm64-ab-gapps-16.0
+          DOWNLOAD_URL=$(curl -sL -H "Authorization: Bearer $GH_TOKEN" https://api.github.com/repos/ponces/treble_aosp/releases | jq -r '.[].assets[]? | select(.name | test("^aosp-arm64-ab-gapps-16\\.0-.*\\.img\\.xz$")) | .browser_download_url' | head -n 1)
           
-          if [ -z "$DOWNLOAD_URL" ]; then
-            echo "Failed to fetch URL automatically!"
-            exit 1
+          # Fallback to direct known Android 16 release URL if API ever changes
+          if [ -z "$DOWNLOAD_URL" ] || [ "$DOWNLOAD_URL" == "null" ]; then
+            echo "API returned empty, using fallback Android 16 GApps URL..."
+            DOWNLOAD_URL="https://github.com/ponces/treble_aosp/releases/download/v2025.06.25/aosp-arm64-ab-gapps-16.0-20250625.img.xz"
           fi
           
           echo "Downloading from: $DOWNLOAD_URL"
-          wget -O system.img.xz "$DOWNLOAD_URL"
+          wget -q --show-progress -O system.img.xz "$DOWNLOAD_URL"
           
           echo "Extracting system.img..."
           unxz -T0 system.img.xz
