@@ -1,1 +1,72 @@
+name: Build ArcOS V0-ALPHA GSI
 
+on:
+  workflow_dispatch:
+
+jobs:
+  build_gsi:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout ArcOS Vendor Repo
+        uses: actions/checkout@v4
+
+      - name: Maximize Build Space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+
+      - name: Install Android Build & Image Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y android-sdk-libsparse-utils e2fsprogs aapt zip unzip wget curl
+
+      - name: Download Base Android 16 GSI (arm64 + GApps)
+        run: |
+          mkdir -p work && cd work
+          # Downloading Google/Treble Android 16 Base GSI with GApps
+          # (Replace URL with the specific A16 TrebleDroid/Google GSI tarball you want as base)
+          wget -O base_gsi.zip "https://dl.google.com/developers/android/baklava/images/gsi/gsi_gms_arm64-exp-BP11.241025.006-12620009-f29b9f11.zip"
+          unzip base_gsi.zip system.img
+
+      - name: Mount and Modify System Image for ArcOS
+        run: |
+          cd work
+          # Ensure image is raw ext4 and expand it slightly for our mods
+          e2fsck -f -y system.img || true
+          resize2fs system.img 5G
+          
+          mkdir -p mount_point
+          sudo mount -o loop,rw system.img mount_point
+          
+          # 1. Inject ArcOS build.prop entries
+          sudo bash -c "cat ../config/system.prop >> mount_point/system/build.prop"
+          
+          # 2. Build and Inject Emerald Overlay
+          aapt package -f -M ../overlay/ArcOSDevicesEmerald/AndroidManifest.xml \
+            -S ../overlay/ArcOSDevicesEmerald/res \
+            -I /usr/lib/android-sdk/platforms/android-*/android.jar \
+            -F ArcOSDevicesEmerald.apk || true
+          
+          if [ -f ArcOSDevicesEmerald.apk ]; then
+            sudo mkdir -p mount_point/system/product/overlay/ArcOSDevicesEmerald
+            sudo cp ArcOSDevicesEmerald.apk mount_point/system/product/overlay/ArcOSDevicesEmerald/
+            sudo chmod 644 mount_point/system/product/overlay/ArcOSDevicesEmerald/ArcOSDevicesEmerald.apk
+          fi
+
+          # 3. Unmount and shrink image back to minimum size for DSU
+          sudo umount mount_point
+          e2fsck -f -y system.img
+          resize2fs -M system.img
+
+      - name: Package for DSU Sideloader
+        run: |
+          cd work
+          zip -r9 ArcOS-V0-ALPHA-arm64-ab-gapps.zip system.img
+
+      - name: Upload ArcOS Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArcOS-V0-ALPHA-DSU
+          path: work/ArcOS-V0-ALPHA-arm64-ab-gapps.zip
