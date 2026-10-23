@@ -4,10 +4,10 @@ while [ "$(getprop sys.boot_completed)" != "1" ]; do
     sleep 1
 done
 
-# Enforce 374dp Smallest Width on 1080p panel (1080 / (462/160) = 374dp)
-wm density 462
+# Ensure FOD HBM and Touch sysfs nodes are writable by SystemUI & AIDL HAL
+chmod 0666 /sys/devices/virtual/mi_display/disp_feature/disp-DSI-0/disp_param
+chmod 0666 /sys/class/mi_display/disp-DSI-0/disp_param
+chmod 0666 /sys/class/touch/touch_dev/fod_press_status
 
-# Set custom settings for ArcOS Out-of-the-box feel
-settings put global window_animation_scale 1.0
-settings put global transition_animation_scale 1.0
-settings put global animator_duration_scale 1.0
+# Clear runtime wm density overrides so Stable Density == Current Density (fixes UDFPS clipping)
+wm density reset
