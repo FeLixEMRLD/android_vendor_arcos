@@ -47,7 +47,6 @@ jobs:
       - name: Mount and Modify System Image for ArcOS
         run: |
           cd work
-          # Ensure image is raw ext4, unshare blocks so we can write to it, and expand to 6GB
           e2fsck -f -y system.img || true
           resize2fs system.img 6G
           e2fsck -E unshare_blocks -f -y system.img || true
@@ -55,16 +54,28 @@ jobs:
           mkdir -p mount_point
           sudo mount -o loop,rw system.img mount_point
           
-          # 1. Inject ArcOS build.prop entries
+          # 1. Patch existing build.prop values so ro.debuggable=1 and density=462 take priority
+          sudo sed -i 's/ro.debuggable=0/ro.debuggable=1/g' mount_point/system/build.prop
+          sudo sed -i 's/ro.adb.secure=1/ro.adb.secure=0/g' mount_point/system/build.prop
+          sudo sed -i '/ro.sf.lcd_density/d' mount_point/system/build.prop
           sudo bash -c "cat ../config/system.prop >> mount_point/system/build.prop"
           
-          # 2. Inject ArcOS First-Boot Density & Init Script
-          if [ -f ../prebuilt/bin/arcos_init.sh ]; then
-            sudo cp ../prebuilt/bin/arcos_init.sh mount_point/system/bin/arcos_init.sh
-            sudo chmod 755 mount_point/system/bin/arcos_init.sh
-          fi
+          # Also set density in product/etc/build.prop so DENSITY_DEVICE_STABLE is 462
+          sudo sed -i '/ro.sf.lcd_density/d' mount_point/system/product/etc/build.prop || true
+          sudo bash -c "echo 'ro.sf.lcd_density=462' >> mount_point/system/product/etc/build.prop"
+          
+          # 2. Inject ArcOS Init & UDFPS Hardware Bridge Scripts
+          sudo cp ../prebuilt/bin/arcos_init.sh mount_point/system/bin/arcos_init.sh
+          sudo cp ../prebuilt/bin/arcos_udfps.sh mount_point/system/bin/arcos_udfps.sh
+          sudo chmod 755 mount_point/system/bin/arcos_init.sh mount_point/system/bin/arcos_udfps.sh
+          sudo chown 0:2000 mount_point/system/bin/arcos_init.sh mount_point/system/bin/arcos_udfps.sh
+          
+          # 3. Inject init.arcos.rc into /system/etc/init/
+          sudo cp ../prebuilt/etc/init/init.arcos.rc mount_point/system/etc/init/init.arcos.rc
+          sudo chmod 644 mount_point/system/etc/init/init.arcos.rc
+          sudo chown 0:0 mount_point/system/etc/init/init.arcos.rc
 
-          # 3. Build, Align, Sign, and Inject Emerald Overlay
+          # 4. Build, Align, Sign, and Inject Emerald Overlay
           aapt package -f -M ../overlay/ArcOSDevicesEmerald/AndroidManifest.xml \
             -S ../overlay/ArcOSDevicesEmerald/res \
             -I /usr/lib/android-sdk/platforms/android-*/android.jar \
@@ -72,7 +83,6 @@ jobs:
           
           zipalign -v -p 4 ArcOSDevicesEmerald-unaligned.apk ArcOSDevicesEmerald.apk
           
-          # Generate a quick platform key and sign the overlay so Android 16 loads it
           keytool -genkey -v -keystore arcos.keystore -alias arcos -keyalg RSA -keysize 2048 -validity 10000 -storepass arcos123 -keypass arcos123 -dname "CN=ArcOS, OU=Dev, O=ArcOS, L=PH, S=PH, C=PH"
           apksigner sign --ks arcos.keystore --ks-pass pass:arcos123 --key-pass pass:arcos123 ArcOSDevicesEmerald.apk
           
@@ -80,7 +90,7 @@ jobs:
           sudo cp ArcOSDevicesEmerald.apk mount_point/system/product/overlay/ArcOSDevicesEmerald/
           sudo chmod 644 mount_point/system/product/overlay/ArcOSDevicesEmerald/ArcOSDevicesEmerald.apk
 
-          # 4. Unmount and shrink image back to minimum size for DSU
+          # 5. Unmount and shrink image back to minimum size for DSU
           sudo umount mount_point
           e2fsck -f -y system.img || true
           resize2fs -M system.img
