@@ -4,9 +4,20 @@
     <dimen name="status_bar_height_portrait">36dp</dimen>
     <dimen name="status_bar_height_landscape">28dp</dimen>
 
-    <!-- Rounded corners padding ( Prevents battery/clock from clipping into the curved screen edges ) -->
+    <!-- Rounded corners padding -->
     <dimen name="rounded_corner_content_padding">18dp</dimen>
 
     <!-- Enable Auto-Brightness -->
     <bool name="config_automatic_brightness_available">true</bool>
+
+    <!-- UDFPS (Under-Display Fingerprint) Coordinates for Emerald (1080x2400) -->
+    <!-- Format: X, Y, Radius (Center is 540px, Y is lower-bottom at 2156px, Radius 95px) -->
+    <integer-array name="config_udfps_sensor_props" translatable="false" >
+        <item>540</item>
+        <item>2156</item>
+        <item>95</item>
+    </integer-array>
+
+    <!-- Tell Android 16 BiometricService that our AIDL HAL supports UDFPS gestures -->
+    <bool name="config_udfpsonEnroll">true</bool>
 </resources>
