@@ -20,22 +20,34 @@ jobs:
       - name: Install Android Build & Image Tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y android-sdk-libsparse-utils e2fsprogs aapt zip unzip wget curl
+          sudo apt-get install -y android-sdk-libsparse-utils e2fsprogs aapt zip unzip wget curl jq xz-utils
 
-      - name: Download Base Android 16 GSI (arm64 + GApps)
+      - name: Download Base Android 16 GSI (TrebleDroid AOSP + GApps)
         run: |
           mkdir -p work && cd work
-          # Downloading Google/Treble Android 16 Base GSI with GApps
-          # (Replace URL with the specific A16 TrebleDroid/Google GSI tarball you want as base)
-          wget -O base_gsi.zip "https://dl.google.com/developers/android/baklava/images/gsi/gsi_gms_arm64-exp-BP11.241025.006-12620009-f29b9f11.zip"
-          unzip base_gsi.zip system.img
+          echo "Fetching latest Android 16 arm64-ab-gapps GSI URL..."
+          
+          # Automatically grabs the latest Android 16 AOSP GApps build from ponces/treble_aosp
+          DOWNLOAD_URL=$(curl -s https://api.github.com/repos/ponces/treble_aosp/releases | jq -r '.[].assets[] | select(.name | test("system-.*arm64-ab-gapps.*\\.img\\.xz$")) | .browser_download_url' | head -n 1)
+          
+          if [ -z "$DOWNLOAD_URL" ]; then
+            echo "Failed to fetch URL automatically!"
+            exit 1
+          fi
+          
+          echo "Downloading from: $DOWNLOAD_URL"
+          wget -O system.img.xz "$DOWNLOAD_URL"
+          
+          echo "Extracting system.img..."
+          unxz -T0 system.img.xz
 
       - name: Mount and Modify System Image for ArcOS
         run: |
           cd work
-          # Ensure image is raw ext4 and expand it slightly for our mods
+          # Ensure image is raw ext4, unshare blocks so we can write to it, and expand to 6GB
           e2fsck -f -y system.img || true
-          resize2fs system.img 5G
+          resize2fs system.img 6G
+          e2fsck -E unshare_blocks -f -y system.img || true
           
           mkdir -p mount_point
           sudo mount -o loop,rw system.img mount_point
@@ -43,7 +55,13 @@ jobs:
           # 1. Inject ArcOS build.prop entries
           sudo bash -c "cat ../config/system.prop >> mount_point/system/build.prop"
           
-          # 2. Build and Inject Emerald Overlay
+          # 2. Inject ArcOS First-Boot Density & Init Script
+          if [ -f ../prebuilt/bin/arcos_init.sh ]; then
+            sudo cp ../prebuilt/bin/arcos_init.sh mount_point/system/bin/arcos_init.sh
+            sudo chmod 755 mount_point/system/bin/arcos_init.sh
+          fi
+
+          # 3. Build and Inject Emerald Overlay
           aapt package -f -M ../overlay/ArcOSDevicesEmerald/AndroidManifest.xml \
             -S ../overlay/ArcOSDevicesEmerald/res \
             -I /usr/lib/android-sdk/platforms/android-*/android.jar \
@@ -55,15 +73,15 @@ jobs:
             sudo chmod 644 mount_point/system/product/overlay/ArcOSDevicesEmerald/ArcOSDevicesEmerald.apk
           fi
 
-          # 3. Unmount and shrink image back to minimum size for DSU
+          # 4. Unmount and shrink image back to minimum size for DSU
           sudo umount mount_point
-          e2fsck -f -y system.img
+          e2fsck -f -y system.img || true
           resize2fs -M system.img
 
       - name: Package for DSU Sideloader
         run: |
           cd work
-          zip -r9 ArcOS-V0-ALPHA-arm64-ab-gapps.zip system.img
+          zip -r1 ArcOS-V0-ALPHA-arm64-ab-gapps.zip system.img
 
       - name: Upload ArcOS Artifact
         uses: actions/upload-artifact@v4
