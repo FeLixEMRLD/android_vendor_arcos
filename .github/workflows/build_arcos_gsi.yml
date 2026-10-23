@@ -72,8 +72,10 @@ jobs:
           sudo chmod 644 mount_point/system/etc/init/init.arcos.rc
           sudo chown 0:0 mount_point/system/etc/init/init.arcos.rc
 
-          # 4. Build, Align, Sign, and Inject Emerald Overlay (Single-line aapt to avoid backslash errors)
-          aapt package -f -M ../overlay/ArcOSDevicesEmerald/AndroidManifest.xml -S ../overlay/ArcOSDevicesEmerald/res -I mount_point/system/framework/framework-res.apk -F ArcOSDevicesEmerald-unaligned.apk
+          # 4. Build, Align, Sign, and Inject Emerald Overlay using pre-installed Android SDK android.jar
+          ANDROID_JAR=$(ls $ANDROID_SDK_ROOT/platforms/android-*/android.jar | sort -V | tail -n 1)
+          echo "Using Android SDK JAR: $ANDROID_JAR"
+          aapt package -f -M ../overlay/ArcOSDevicesEmerald/AndroidManifest.xml -S ../overlay/ArcOSDevicesEmerald/res -I "$ANDROID_JAR" -F ArcOSDevicesEmerald-unaligned.apk
           zipalign -v -p 4 ArcOSDevicesEmerald-unaligned.apk ArcOSDevicesEmerald.apk
           rm -f arcos.keystore
           keytool -genkey -v -keystore arcos.keystore -alias arcos -keyalg RSA -keysize 2048 -validity 10000 -storepass arcos123 -keypass arcos123 -dname "CN=ArcOS, OU=Dev, O=ArcOS, L=PH, S=PH, C=PH"
