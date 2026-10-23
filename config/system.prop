@@ -1,15 +1,26 @@
 # ArcOS Identity
-ro.arcos.version=V0-ALPHA
-ro.build.display.id=ArcOS V0-ALPHA (Android 16)
+ro.arcos.version=V0.1-ALPHA
+ro.build.display.id=ArcOS V0.1-ALPHA (Android 16)
 
 # Display & Density Overrides for Emerald
 ro.sf.lcd_density=440
 persist.sys.sf.lcd_density=462
 
-# HyperOS 3.0 / MediaTek Helio G99 (mt6789) GSI Compatibility Fixes
+# Fix First-Boot Blackscreen on MediaTek Helio G99 (mt6789) / HyperOS 3.0 Vendor
+debug.sf.latch_unsignaled=1
+debug.sf.auto_latch_unsignaled=false
+ro.surface_flinger.use_content_detection_for_refresh_rate=false
+persist.sys.phh.MainBuiltInDisplayCutout=1
+
+# Xiaomi AIDL UDFPS (Fingerprint on Display) & Touch Hooks
+persist.sys.phh.fod.xiaomi=true
+ro.hardware.fp.fod=true
+persist.vendor.sys.fp.fod.location.X_Y=445,2061
+persist.vendor.sys.fp.fod.size.width_height=190,190
+
+# HyperOS 3.0 / MediaTek GSI Compatibility Fixes
 persist.sys.usb.config=adb
 ro.adb.secure=0
 persist.sys.phh.disable_audio_effects=1
 persist.sys.overlay.nightmode=true
-# Fix brightness curve on Xiaomi MTK vendors
 persist.sys.phh.xiaomi.dt2w=true
