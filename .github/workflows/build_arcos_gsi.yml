@@ -20,8 +20,8 @@ jobs:
       - name: Install Android Build & Image Tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y android-sdk-libsparse-utils e2fsprogs aapt apksigner zip unzip wget curl jq xz-utils
-          
+          sudo apt-get install -y android-sdk-libsparse-utils e2fsprogs aapt zipalign apksigner zip unzip wget curl jq xz-utils
+
       - name: Download Base Android 16 GSI (TrebleDroid AOSP + GApps)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -29,10 +29,8 @@ jobs:
           mkdir -p work && cd work
           echo "Fetching latest Android 16 arm64-ab-gapps GSI URL..."
           
-          # Query ponces/treble_aosp with GH_TOKEN to avoid rate limits, matching aosp-arm64-ab-gapps-16.0
           DOWNLOAD_URL=$(curl -sL -H "Authorization: Bearer $GH_TOKEN" https://api.github.com/repos/ponces/treble_aosp/releases | jq -r '.[].assets[]? | select(.name | test("^aosp-arm64-ab-gapps-16\\.0-.*\\.img\\.xz$")) | .browser_download_url' | head -n 1)
           
-          # Fallback to direct known Android 16 release URL if API ever changes
           if [ -z "$DOWNLOAD_URL" ] || [ "$DOWNLOAD_URL" == "null" ]; then
             echo "API returned empty, using fallback Android 16 GApps URL..."
             DOWNLOAD_URL="https://github.com/ponces/treble_aosp/releases/download/v2025.06.25/aosp-arm64-ab-gapps-16.0-20250625.img.xz"
@@ -60,7 +58,6 @@ jobs:
           sudo sed -i '/ro.sf.lcd_density/d' mount_point/system/build.prop
           sudo bash -c "cat ../config/system.prop >> mount_point/system/build.prop"
           
-          # Also set density in product/etc/build.prop so DENSITY_DEVICE_STABLE is 462
           sudo sed -i '/ro.sf.lcd_density/d' mount_point/system/product/etc/build.prop || true
           sudo bash -c "echo 'ro.sf.lcd_density=462' >> mount_point/system/product/etc/build.prop"
           
@@ -75,25 +72,17 @@ jobs:
           sudo chmod 644 mount_point/system/etc/init/init.arcos.rc
           sudo chown 0:0 mount_point/system/etc/init/init.arcos.rc
 
-          - name: Build, Align, Sign, and Inject Emerald Overlay
-          run: |
-          # 4.1 Build APK using Android 16 framework-res.apk
-          aapt package -f -M ../overlay/ArcOSDevicesEmerald/AndroidManifest.xml \
-              -S ../overlay/ArcOSDevicesEmerald/res \
-              -I mount_point/system/framework/framework-res.apk \
-              -F ArcOSDevicesEmerald-unaligned.apk
-
-          # 4.2 Align APK
+          # 4. Build, Align, Sign, and Inject Emerald Overlay (Single-line aapt to avoid backslash errors)
+          aapt package -f -M ../overlay/ArcOSDevicesEmerald/AndroidManifest.xml -S ../overlay/ArcOSDevicesEmerald/res -I mount_point/system/framework/framework-res.apk -F ArcOSDevicesEmerald-unaligned.apk
           zipalign -v -p 4 ArcOSDevicesEmerald-unaligned.apk ArcOSDevicesEmerald.apk
-
-          # 4.3 Generate Keystore and Sign APK
-          keytool -genkey -v -keystore arcos.keystore -alias arcos -keyalg RSA -keysize 2048 -validity 10000 -storepass arcos123 -keypass arcos123 -dname "CN=ArcOS, OU=Dev, O=ArcOS, L=PH, S=PH, C=PH" || true
+          rm -f arcos.keystore
+          keytool -genkey -v -keystore arcos.keystore -alias arcos -keyalg RSA -keysize 2048 -validity 10000 -storepass arcos123 -keypass arcos123 -dname "CN=ArcOS, OU=Dev, O=ArcOS, L=PH, S=PH, C=PH"
           apksigner sign --ks arcos.keystore --ks-pass pass:arcos123 --key-pass pass:arcos123 ArcOSDevicesEmerald.apk
-
-          # 4.4 Inject Overlay into Mounted System Image
+          
           sudo mkdir -p mount_point/system/product/overlay/ArcOSDevicesEmerald
-          sudo cp ArcOSDevicesEmerald.apk mount_point/system/product/overlay/ArcOSDevicesEmerald/ArcOSDevicesEmerald.apk
+          sudo cp ArcOSDevicesEmerald.apk mount_point/system/product/overlay/ArcOSDevicesEmerald/
           sudo chmod 644 mount_point/system/product/overlay/ArcOSDevicesEmerald/ArcOSDevicesEmerald.apk
+
           # 5. Unmount and shrink image back to minimum size for DSU
           sudo umount mount_point
           e2fsck -f -y system.img || true
@@ -102,10 +91,10 @@ jobs:
       - name: Package for DSU Sideloader
         run: |
           cd work
-          zip -r1 ArcOS-V0-ALPHA-arm64-ab-gapps.zip system.img
+          zip -r1 ArcOS-V0.1-ALPHA-arm64-ab-gapps.zip system.img
 
       - name: Upload ArcOS Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ArcOS-V0-ALPHA-DSU
+          name: ArcOS-V0.1-ALPHA-DSU
           path: work/ArcOS-V0-ALPHA-arm64-ab-gapps.zip
