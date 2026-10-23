@@ -75,21 +75,25 @@ jobs:
           sudo chmod 644 mount_point/system/etc/init/init.arcos.rc
           sudo chown 0:0 mount_point/system/etc/init/init.arcos.rc
 
-          # 4. Build, Align, Sign, and Inject Emerald Overlay
+          - name: Build, Align, Sign, and Inject Emerald Overlay
+          run: |
+          # 4.1 Build APK using Android 16 framework-res.apk
           aapt package -f -M ../overlay/ArcOSDevicesEmerald/AndroidManifest.xml \
-            -S ../overlay/ArcOSDevicesEmerald/res \
-            -I /usr/lib/android-sdk/platforms/android-*/android.jar \
-            -F ArcOSDevicesEmerald-unaligned.apk
-          
-          zipalign -v -p 4 ArcOSDevicesEmerald-unaligned.apk ArcOSDevicesEmerald.apk
-          
-          keytool -genkey -v -keystore arcos.keystore -alias arcos -keyalg RSA -keysize 2048 -validity 10000 -storepass arcos123 -keypass arcos123 -dname "CN=ArcOS, OU=Dev, O=ArcOS, L=PH, S=PH, C=PH"
-          apksigner sign --ks arcos.keystore --ks-pass pass:arcos123 --key-pass pass:arcos123 ArcOSDevicesEmerald.apk
-          
-          sudo mkdir -p mount_point/system/product/overlay/ArcOSDevicesEmerald
-          sudo cp ArcOSDevicesEmerald.apk mount_point/system/product/overlay/ArcOSDevicesEmerald/
-          sudo chmod 644 mount_point/system/product/overlay/ArcOSDevicesEmerald/ArcOSDevicesEmerald.apk
+              -S ../overlay/ArcOSDevicesEmerald/res \
+              -I mount_point/system/framework/framework-res.apk \
+              -F ArcOSDevicesEmerald-unaligned.apk
 
+          # 4.2 Align APK
+          zipalign -v -p 4 ArcOSDevicesEmerald-unaligned.apk ArcOSDevicesEmerald.apk
+
+          # 4.3 Generate Keystore and Sign APK
+          keytool -genkey -v -keystore arcos.keystore -alias arcos -keyalg RSA -keysize 2048 -validity 10000 -storepass arcos123 -keypass arcos123 -dname "CN=ArcOS, OU=Dev, O=ArcOS, L=PH, S=PH, C=PH" || true
+          apksigner sign --ks arcos.keystore --ks-pass pass:arcos123 --key-pass pass:arcos123 ArcOSDevicesEmerald.apk
+
+          # 4.4 Inject Overlay into Mounted System Image
+          sudo mkdir -p mount_point/system/product/overlay/ArcOSDevicesEmerald
+          sudo cp ArcOSDevicesEmerald.apk mount_point/system/product/overlay/ArcOSDevicesEmerald/ArcOSDevicesEmerald.apk
+          sudo chmod 644 mount_point/system/product/overlay/ArcOSDevicesEmerald/ArcOSDevicesEmerald.apk
           # 5. Unmount and shrink image back to minimum size for DSU
           sudo umount mount_point
           e2fsck -f -y system.img || true
