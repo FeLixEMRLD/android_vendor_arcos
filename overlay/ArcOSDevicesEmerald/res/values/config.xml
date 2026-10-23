@@ -1,1 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Status bar height to match Redmi Note 13 Pro 4G punch hole -->
+    <dimen name="status_bar_height_portrait">36dp</dimen>
+    <dimen name="status_bar_height_landscape">28dp</dimen>
 
+    <!-- Rounded corners padding ( Prevents battery/clock from clipping into the curved screen edges ) -->
+    <dimen name="rounded_corner_content_padding">18dp</dimen>
+
+    <!-- Enable Auto-Brightness -->
+    <bool name="config_automatic_brightness_available">true</bool>
+</resources>
