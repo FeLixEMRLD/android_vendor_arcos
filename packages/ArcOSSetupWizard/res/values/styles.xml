@@ -1,1 +1,9 @@
-
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="ArcSetupTheme" parent="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen">
+        <item name="android:windowBackground">@color/arcos_bg</item>
+        <item name="android:statusBarColor">@color/arcos_bg</item>
+        <item name="android:navigationBarColor">@color/arcos_bg</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
+</resources>
