@@ -1,22 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.arcos.setupwizard">
+    package="com.arcos.setupwizard"
+    android:versionCode="1"
+    android:versionName="1.0">
 
-    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
+    <uses-sdk
+        android:minSdkVersion="34"
+        android:targetSdkVersion="34" />
+
+    <!-- Native System Provisioning Organ Permissions (signature|privileged) -->
     <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" />
+    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
+    <uses-permission android:name="android.permission.STATUS_BAR" />
+    <uses-permission android:name="android.permission.CHANGE_CONFIGURATION" />
     <uses-permission android:name="android.permission.CHANGE_COMPONENT_ENABLED_STATE" />
+    <uses-permission android:name="android.permission.SET_TIME" />
+    <uses-permission android:name="android.permission.SET_TIME_ZONE" />
+    <uses-permission android:name="android.permission.DISPATCH_PROVISIONING_MESSAGE" />
+    <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS" />
+    <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS_FULL" />
+    <uses-permission android:name="android.permission.MANAGE_USERS" />
 
     <application
         android:label="ArcOS Setup"
-        android:theme="@style/ArcSetupTheme">
+        android:allowBackup="false"
+        android:directBootAware="true"
+        android:defaultToDeviceProtectedStorage="true"
+        android:supportsRtl="true"
+        android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
 
         <activity
             android:name=".ArcSetupActivity"
+            android:label="ArcOS Setup"
+            android:directBootAware="true"
             android:exported="true"
             android:excludeFromRecents="true"
             android:launchMode="singleTask"
-            android:screenOrientation="portrait">
-            <intent-filter android:priority="100">
+            android:clearTaskOnLaunch="true"
+            android:stateNotNeeded="true"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|keyboardHidden|screenSize|smallestScreenSize|screenLayout|uiMode"
+            android: Immersive="true">
+
+            <!-- Primary SetupWizard / Provisioning Organ Intent Filter -->
+            <intent-filter android:priority="10000">
                 <action android:name="android.intent.action.MAIN" />
                 <action android:name="android.intent.action.DEVICE_INITIALIZATION_WIZARD" />
                 <category android:name="android.intent.category.HOME" />
