@@ -246,7 +246,7 @@ public class ArcSetupActivity extends Activity implements View.OnClickListener, 
         }
 
         try {
-            Settings.Secure.putInt(cr, Settings.Secure.USER_SETUP_COMPLETE, 1);
+            Settings.Secure.putInt(cr, "user_setup_complete", 1);
             Settings.Secure.putInt(cr, "tv_user_setup_complete", 1);
         } catch (Throwable ignored) {
         }
