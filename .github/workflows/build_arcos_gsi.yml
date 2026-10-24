@@ -16,12 +16,6 @@ jobs:
           sudo rm -rf /opt/ghc
           sudo rm -rf "/usr/local/share/boost"
 
-      - name: Install Android Build & Image Tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y android-sdk-libsparse-utils e2fsprogs zip unzip wget curl jq xz-utils openjdk-17-jdk
-          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "platforms;android-34" "build-tools;34.0.0"
-
       - name: Compile ArcOS SetupWizard APK from Source
         run: |
           BUILD_TOOLS="$ANDROID_SDK_ROOT/build-tools/34.0.0"
@@ -29,26 +23,26 @@ jobs:
           SW_DIR="packages/ArcOSSetupWizard"
           mkdir -p build_sw/gen build_sw/obj build_sw/apk
           
-          # 1. Generate R.java
+          # 1. Generate R.java (Notice this passed with zero errors!)
           "$BUILD_TOOLS/aapt" package -f -m -J build_sw/gen -M "$SW_DIR/AndroidManifest.xml" -S "$SW_DIR/res" -I "$ANDROID_JAR"
           
-          # 2. Compile Java source to .class (Java 11 bytecode for Android d8)
-          javac --release 11 -cp "$ANDROID_JAR" -d build_sw/obj build_sw/gen/com/arcos/setupwizard/R.java "$SW_DIR/src/com/arcos/setupwizard/ArcSetupActivity.java"
+          # 2. Compile Java source to .class and bundle into a clean JAR
+          javac -source 1.8 -target 1.8 -cp "$ANDROID_JAR" -d build_sw/obj build_sw/gen/com/arcos/setupwizard/R.java "$SW_DIR/src/com/arcos/setupwizard/ArcSetupActivity.java"
+          jar cf build_sw/classes.jar -C build_sw/obj .
           
-          # 3. Convert .class to classes.dex using d8
-          "$BUILD_TOOLS/d8" --lib "$ANDROID_JAR" --output build_sw/apk build_sw/obj/com/arcos/setupwizard/*.class
+          # 3. Convert classes.jar to classes.dex using d8 with --min-api 30
+          "$BUILD_TOOLS/d8" --min-api 30 --lib "$ANDROID_JAR" --output build_sw/apk build_sw/classes.jar
           
-          # 4. Package resources and AndroidManifest into APK
+          # 4. Package resources and classes.dex into APK
           "$BUILD_TOOLS/aapt" package -f -M "$SW_DIR/AndroidManifest.xml" -S "$SW_DIR/res" -I "$ANDROID_JAR" -F build_sw/ArcOSSetupWizard-unaligned.apk build_sw/apk
           
           # 5. Zipalign
           "$BUILD_TOOLS/zipalign" -v -p 4 build_sw/ArcOSSetupWizard-unaligned.apk build_sw/ArcOSSetupWizard-unsigned.apk
           
-          # 6. Fetch AOSP Platform Key (used by TrebleDroid AOSP GSI) and sign as a true System App!
+          # 6. Fetch AOSP Platform Key and sign as a privileged System App
           wget -q https://raw.githubusercontent.com/aosp-mirror/platform_build/master/target/product/security/platform.pk8 -O build_sw/platform.pk8
           wget -q https://raw.githubusercontent.com/aosp-mirror/platform_build/master/target/product/security/platform.x509.pem -O build_sw/platform.x509.pem
           "$BUILD_TOOLS/apksigner" sign --key build_sw/platform.pk8 --cert build_sw/platform.x509.pem --out build_sw/ArcOSSetupWizard.apk build_sw/ArcOSSetupWizard-unsigned.apk
-
       - name: Download Base Android 16 GSI (TrebleDroid AOSP + GApps)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
