@@ -1,29 +1,32 @@
+# ==========================================
+# ArcOS System Properties (emerald / mt6789)
+# ==========================================
+
 # ArcOS Identity
 ro.arcos.version=V0.1-ALPHA
-ro.build.display.id=ArcOS V0.1-ALPHA (Android 16)
+ro.arcos.device=emerald
+ro.arcos.build.version=16.0
+ro.modversion=ArcOS-V0.1-ALPHA-emerald
 
-# Lock BOTH stable and persistent density to 462
+# Display & Scaling: 374 DP (462 DPI on 1080x2400)
 ro.sf.lcd_density=462
 persist.sys.sf.lcd_density=462
 
-# Prevent PackageManager from crashing on custom priv-app permissions & bypass Google SetupWizard lock
-ro.control_privapp_permissions=log
-ro.setupwizard.mode=DISABLED
-
-# Fix First-Boot Blackscreen on MediaTek Helio G99 (mt6789) / HyperOS 3.0 Vendor
+# SurfaceFlinger & 120Hz First-Boot Blackscreen Fixes (MediaTek mt6789)
 debug.sf.latch_unsignaled=1
-debug.sf.auto_latch_unsignaled=false
+debug.sf.auto_latch_unsignaled=true
 ro.surface_flinger.use_content_detection_for_refresh_rate=false
-persist.sys.phh.MainBuiltInDisplayCutout=1
 
-# Xiaomi AIDL UDFPS (Fingerprint on Display) & Touch Hooks
-persist.sys.phh.fod.xiaomi=true
-ro.hardware.fp.fod=true
+# Native Provisioning / SetupWizard Organ Configuration
+# Must be OPTIONAL or ENABLED (never DISABLED) so Keyguard & SystemUI suppress
+# the lockscreen and status bar until ArcOSSetupWizard completes provisioning.
+ro.setupwizard.mode=OPTIONAL
+setupwizard.theme=glif_v4_light
 
-# HyperOS 3.0 / MediaTek GSI Compatibility Fixes
-persist.sys.usb.config=adb
+# Privileged Permission Enforcement (Allow custom system organs without crash)
+ro.control_privapp_permissions=log
+
+# Early Boot ADB Diagnostics
 ro.adb.secure=0
 ro.debuggable=1
-persist.sys.phh.disable_audio_effects=1
-persist.sys.overlay.nightmode=true
-persist.sys.phh.xiaomi.dt2w=true
+persist.sys.usb.config=adb
