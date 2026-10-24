@@ -1,4 +1,4 @@
-name: Build ArcOS V0-ALPHA GSI
+name: Build ArcOS V0.1-ALPHA GSI
 
 on:
   workflow_dispatch:
@@ -16,6 +16,12 @@ jobs:
           sudo rm -rf /opt/ghc
           sudo rm -rf "/usr/local/share/boost"
 
+      - name: Install Android Build & Image Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y android-sdk-libsparse-utils e2fsprogs zip unzip wget curl jq xz-utils
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "platforms;android-34" "build-tools;34.0.0"
+
       - name: Compile ArcOS SetupWizard APK from Source
         run: |
           BUILD_TOOLS="$ANDROID_SDK_ROOT/build-tools/34.0.0"
@@ -23,14 +29,14 @@ jobs:
           SW_DIR="packages/ArcOSSetupWizard"
           mkdir -p build_sw/gen build_sw/obj build_sw/apk
           
-          # 1. Generate R.java (Notice this passed with zero errors!)
+          # 1. Generate R.java
           "$BUILD_TOOLS/aapt" package -f -m -J build_sw/gen -M "$SW_DIR/AndroidManifest.xml" -S "$SW_DIR/res" -I "$ANDROID_JAR"
           
-          # 2. Compile Java source to .class and bundle into a clean JAR
+          # 2. Compile Java source to .class and bundle into JAR
           javac -source 1.8 -target 1.8 -cp "$ANDROID_JAR" -d build_sw/obj build_sw/gen/com/arcos/setupwizard/R.java "$SW_DIR/src/com/arcos/setupwizard/ArcSetupActivity.java"
           jar cf build_sw/classes.jar -C build_sw/obj .
           
-          # 3. Convert classes.jar to classes.dex using d8 with --min-api 30
+          # 3. Convert classes.jar to classes.dex using d8
           "$BUILD_TOOLS/d8" --min-api 30 --lib "$ANDROID_JAR" --output build_sw/apk build_sw/classes.jar
           
           # 4. Package resources and classes.dex into APK
@@ -39,17 +45,16 @@ jobs:
           # 5. Zipalign
           "$BUILD_TOOLS/zipalign" -v -p 4 build_sw/ArcOSSetupWizard-unaligned.apk build_sw/ArcOSSetupWizard-unsigned.apk
           
-          # 6. Fetch AOSP Platform Key and sign as a privileged System App
+          # 6. Sign APK
           wget -q https://raw.githubusercontent.com/aosp-mirror/platform_build/master/target/product/security/platform.pk8 -O build_sw/platform.pk8
           wget -q https://raw.githubusercontent.com/aosp-mirror/platform_build/master/target/product/security/platform.x509.pem -O build_sw/platform.x509.pem
           "$BUILD_TOOLS/apksigner" sign --key build_sw/platform.pk8 --cert build_sw/platform.x509.pem --out build_sw/ArcOSSetupWizard.apk build_sw/ArcOSSetupWizard-unsigned.apk
+
       - name: Download Base Android 16 GSI (TrebleDroid AOSP + GApps)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p work && cd work
-          echo "Fetching latest Android 16 arm64-ab-gapps GSI URL..."
-          
           DOWNLOAD_URL=$(curl -sL -H "Authorization: Bearer $GH_TOKEN" https://api.github.com/repos/ponces/treble_aosp/releases | jq -r '.[].assets[]? | select(.name | test("^aosp-arm64-ab-gapps-16\\.0-.*\\.img\\.xz$")) | .browser_download_url' | head -n 1)
           
           if [ -z "$DOWNLOAD_URL" ] || [ "$DOWNLOAD_URL" == "null" ]; then
@@ -69,14 +74,18 @@ jobs:
           mkdir -p mount_point
           sudo mount -o loop,rw system.img mount_point
           
-          # 1. Patch build.prop values
-          sudo sed -i 's/ro.debuggable=0/ro.debuggable=1/g' mount_point/system/build.prop
-          sudo sed -i 's/ro.adb.secure=1/ro.adb.secure=0/g' mount_point/system/build.prop
-          sudo sed -i '/ro.sf.lcd_density/d' mount_point/system/build.prop
+          # 1. Patch ALL build.prop files so ADB is never unauthorized and density=462 is universal
+          for propfile in mount_point/system/build.prop mount_point/system/product/etc/build.prop mount_point/system/system_ext/etc/build.prop; do
+            if [ -f "$propfile" ]; then
+              sudo sed -i 's/ro.debuggable=0/ro.debuggable=1/g' "$propfile"
+              sudo sed -i 's/ro.adb.secure=1/ro.adb.secure=0/g' "$propfile"
+              sudo sed -i 's/ro.control_privapp_permissions=enforce/ro.control_privapp_permissions=log/g' "$propfile"
+              sudo sed -i 's/ro.setupwizard.mode=OPTIONAL/ro.setupwizard.mode=DISABLED/g' "$propfile"
+              sudo sed -i '/ro.sf.lcd_density/d' "$propfile"
+              sudo bash -c "echo 'ro.sf.lcd_density=462' >> $propfile"
+            fi
+          done
           sudo bash -c "cat ../config/system.prop >> mount_point/system/build.prop"
-          
-          sudo sed -i '/ro.sf.lcd_density/d' mount_point/system/product/etc/build.prop || true
-          sudo bash -c "echo 'ro.sf.lcd_density=462' >> mount_point/system/product/etc/build.prop"
           
           # 2. Inject ArcOS Init Scripts
           sudo cp ../prebuilt/bin/arcos_init.sh mount_point/system/bin/arcos_init.sh
@@ -88,20 +97,14 @@ jobs:
           sudo chmod 644 mount_point/system/etc/init/init.arcos.rc
           sudo chown 0:0 mount_point/system/etc/init/init.arcos.rc
 
-          # 3. Remove Stock AOSP/Google SetupWizard so ArcOSSetupWizard takes full control of First Boot
-          sudo rm -rf mount_point/system/system_ext/priv-app/SetupWizard*
-          sudo rm -rf mount_point/system/product/priv-app/SetupWizard*
-          sudo rm -rf mount_point/system/priv-app/Provision*
-          sudo rm -rf mount_point/system/system_ext/priv-app/Provision*
-
-          # 4. Inject ArcOSSetupWizard into /system/system_ext/priv-app/
+          # 3. Inject ArcOSSetupWizard into /system/system_ext/priv-app/
           sudo mkdir -p mount_point/system/system_ext/priv-app/ArcOSSetupWizard
           sudo cp ../build_sw/ArcOSSetupWizard.apk mount_point/system/system_ext/priv-app/ArcOSSetupWizard/ArcOSSetupWizard.apk
           sudo chmod 644 mount_point/system/system_ext/priv-app/ArcOSSetupWizard/ArcOSSetupWizard.apk
           sudo cp ../packages/ArcOSSetupWizard/privapp-permissions-arcos.xml mount_point/system/system_ext/etc/permissions/privapp-permissions-arcos.xml
           sudo chmod 644 mount_point/system/system_ext/etc/permissions/privapp-permissions-arcos.xml
 
-          # 5. Unmount and shrink image back to minimum size for DSU
+          # 4. Unmount and shrink image back to minimum size for DSU
           sudo umount mount_point
           e2fsck -f -y system.img || true
           resize2fs -M system.img
@@ -109,10 +112,10 @@ jobs:
       - name: Package for DSU Sideloader
         run: |
           cd work
-          zip -r1 ArcOS-V0-ALPHA-arm64-ab-gapps.zip system.img
+          zip -r1 ArcOS-V0.1-ALPHA-arm64-ab-gapps.zip system.img
 
       - name: Upload ArcOS Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ArcOS-V0-ALPHA-DSU
-          path: work/ArcOS-V0-ALPHA-arm64-ab-gapps.zip
+          name: ArcOS-V0.1-ALPHA-DSU
+          path: work/ArcOS-V0.1-ALPHA-arm64-ab-gapps.zip
