@@ -2,9 +2,13 @@
 ro.arcos.version=V0.1-ALPHA
 ro.build.display.id=ArcOS V0.1-ALPHA (Android 16)
 
-# Lock BOTH stable and persistent density to 462 so UDFPS bounding boxes never clip!
+# Lock BOTH stable and persistent density to 462
 ro.sf.lcd_density=462
 persist.sys.sf.lcd_density=462
+
+# Prevent PackageManager from crashing on custom priv-app permissions & bypass Google SetupWizard lock
+ro.control_privapp_permissions=log
+ro.setupwizard.mode=DISABLED
 
 # Fix First-Boot Blackscreen on MediaTek Helio G99 (mt6789) / HyperOS 3.0 Vendor
 debug.sf.latch_unsignaled=1
