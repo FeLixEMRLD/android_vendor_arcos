@@ -1,1 +1,8 @@
-
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="arcos_bg">#08090C</color>
+    <color name="arcos_card_bg">#151821</color>
+    <color name="arcos_accent">#2563EB</color>
+    <color name="arcos_text_primary">#FFFFFF</color>
+    <color name="arcos_text_secondary">#94A3B8</color>
+</resources>
