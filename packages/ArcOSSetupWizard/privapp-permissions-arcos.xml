@@ -1,16 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <permissions>
     <privapp-permissions package="com.arcos.setupwizard">
-        <permission name="android.permission.WRITE_SECURE_SETTINGS" />
-        <permission name="android.permission.WRITE_SETTINGS" />
-        <permission name="android.permission.STATUS_BAR" />
-        <permission name="android.permission.CHANGE_CONFIGURATION" />
-        <permission name="android.permission.CHANGE_COMPONENT_ENABLED_STATE" />
-        <permission name="android.permission.SET_TIME" />
-        <permission name="android.permission.SET_TIME_ZONE" />
-        <permission name="android.permission.DISPATCH_PROVISIONING_MESSAGE" />
-        <permission name="android.permission.INTERACT_ACROSS_USERS" />
-        <permission name="android.permission.INTERACT_ACROSS_USERS_FULL" />
-        <permission name="android.permission.MANAGE_USERS" />
+        <permission name="android.permission.WRITE_SETTINGS"/>
+        <permission name="android.permission.WRITE_SECURE_SETTINGS"/>
+        <permission name="android.permission.STATUS_BAR"/>
+        <permission name="android.permission.CHANGE_CONFIGURATION"/>
+        <permission name="android.permission.CHANGE_OVERLAY_PACKAGES"/>
+        <permission name="android.permission.DISPATCH_PROVISIONING_MESSAGE"/>
+        <permission name="android.permission.NETWORK_SETTINGS"/>
+        <permission name="android.permission.NETWORK_SETUP_WIZARD"/>
+        <permission name="android.permission.OVERRIDE_WIFI_CONFIG"/>
+        <permission name="android.permission.LOCAL_MAC_ADDRESS"/>
+        <permission name="android.permission.MODIFY_PHONE_STATE"/>
+        <permission name="android.permission.READ_PRIVILEGED_PHONE_STATE"/>
+        <permission name="android.permission.CALL_PRIVILEGED"/>
+        <permission name="android.permission.MANAGE_ACCOUNTS"/>
+        <permission name="android.permission.INTERACT_ACROSS_USERS"/>
+        <permission name="android.permission.INTERACT_ACROSS_USERS_FULL"/>
+        <permission name="android.permission.MANAGE_USERS"/>
     </privapp-permissions>
 </permissions>
