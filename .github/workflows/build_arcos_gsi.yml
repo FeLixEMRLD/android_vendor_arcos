@@ -83,7 +83,7 @@ jobs:
             -M AndroidManifest.xml -S res -I "$ANDROID_JAR"
 
           echo "2. Compiling Java sources..."
-          javac -source 11 -target 11 \
+          javac -source 8 -target 8 \
             -bootclasspath "$ANDROID_JAR" \
             -classpath "$ANDROID_JAR" \
             -d build/obj \
@@ -99,8 +99,8 @@ jobs:
           aapt package -f -0 arsc \
             --min-sdk-version 34 --target-sdk-version 34 \
             -M AndroidManifest.xml -S res -I "$ANDROID_JAR" \
-            -F build/ArcOSSetupWizard.unaligned.apk \
-            build/apk
+            -F build/ArcOSSetupWizard.unaligned.apk
+          zip -uj build/ArcOSSetupWizard.unaligned.apk build/apk/classes.dex
 
           echo "5. Page-aligning APK (4-byte alignment)..."
           "$BUILD_TOOLS/zipalign" -f -p 4 \
@@ -119,7 +119,7 @@ jobs:
 
           "$BUILD_TOOLS/apksigner" verify -v build/ArcOSSetupWizard.apk
           ls -lh build/ArcOSSetupWizard.apk
-
+          
       - name: Mount & Customize ArcOS System Image
         run: |
           export WORKSPACE="$GITHUB_WORKSPACE"
