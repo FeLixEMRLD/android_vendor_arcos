@@ -1,286 +1,240 @@
 package com.arcos.setupwizard;
 
+import android.accounts.Account;
+import android.accounts.AccountManager;
 import android.app.Activity;
+import android.app.KeyguardManager;
+import android.app.admin.DevicePolicyManager;
 import android.content.ComponentName;
 import android.content.ContentResolver;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.net.Uri;
+import android.net.wifi.ScanResult;
+import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.IBinder;
+import android.os.Looper;
 import android.provider.Settings;
-import android.util.DisplayMetrics;
-import android.util.TypedValue;
+import android.telephony.TelephonyManager;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.Window;
-import android.view.WindowInsets;
-import android.view.WindowInsetsController;
 import android.view.WindowManager;
-import android.widget.Button;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
+
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 
 public class ArcSetupActivity extends Activity implements View.OnClickListener, Runnable {
 
-    private int mCurrentStep = 0;
+    private static final int REQ_SET_LOCK = 101;
+    private static final int STATUS_BAR_DISABLE_MASK = 0x00010000 | 0x00200000 | 0x01000000 | 0x00040000;
 
-    private View mCardContainer;
-    private View mDot1;
-    private View mDot2;
-    private View mDot3;
-    private TextView mTxtBadge;
-    private TextView mTxtTitle;
-    private TextView mTxtSubtitle;
-    private TextView mTxtFeatureTitle;
-    private TextView mTxtFeatureDesc;
-    private Button mBtnNext;
+    // Steps:
+    // 1 = Welcome
+    // 2 = Wi-Fi / Network
+    // 3 = Google Setup & Permissions
+    // 4 = Password / Screen Lock
+    // 5 = Navigation Mode
+    // 6 = Final Page
+    private int currentStep = 1;
+
+    private FrameLayout rootContainer;
+    private LinearLayout screenDark;
+    private LinearLayout screenLight;
+
+    // Dark screen views (Step 1 & Step 6)
+    private TextView darkTitleLine1;
+    private TextView darkTitleLine2;
+    private TextView darkFinalSummary;
+    private FrameLayout btnDarkNext;
+    private LinearLayout welcomeBottomLinks;
+    private TextView btnLanguage;
+    private TextView btnAccessibility;
+    private TextView btnEmergency;
+    private TextView btnFinalBack;
+
+    // Light screen views (Steps 2, 3, 4, 5)
+    private FrameLayout btnLightBack;
+    private FrameLayout btnLightNext;
+    private TextView lightTitleLine1;
+    private TextView lightTitleLine2;
+    private TextView lightSubtitle;
+
+    private ScrollView panelStepWifi;
+    private LinearLayout panelStepGoogle;
+    private LinearLayout panelStepPassword;
+    private LinearLayout panelStepNav;
+
+    private TextView btnLightBottomPrimary;
+    private TextView btnLightBottomSecondary;
+    private TextView btnLightBottomTertiary;
+
+    // Wi-Fi rows
+    private LinearLayout[] wifiRows = new LinearLayout[6];
+    private TextView[] wifiSsids = new TextView[6];
+    private TextView[] wifiStatuses = new TextView[6];
+    private View[] wifiDivs = new View[5];
+
+    private List<String> scannedSsids = new ArrayList<String>();
+    private List<Boolean> scannedSecured = new ArrayList<Boolean>();
+    private boolean showAllWifi = false;
+    private String selectedWifiSsid = "";
+
+    // Google Setup views & states
+    private LinearLayout rowGoogleAccount;
+    private TextView txtGoogleAccountTitle;
+    private TextView txtGoogleAccountSub;
+    private TextView statusGoogleAccount;
+    private View divGoogleAccount;
+    private LinearLayout rowGoogleLocation;
+    private TextView toggleLocation;
+    private LinearLayout rowGoogleScanning;
+    private TextView toggleScanning;
+    private LinearLayout rowGoogleBackup;
+    private TextView toggleBackup;
+
+    private boolean offlineSkipGoogleAccount = false;
+    private boolean optLocationEnabled = true;
+    private boolean optScanningEnabled = true;
+    private boolean optBackupEnabled = true;
+
+    // Password views
+    private LinearLayout rowLockPin;
+    private LinearLayout rowLockPassword;
+    private LinearLayout rowLockPattern;
+
+    // Navigation views
+    private LinearLayout rowNavGesture;
+    private LinearLayout rowNavThreeButton;
+    private TextView radioNavGesture;
+    private TextView radioNavThreeButton;
+    private boolean useGestureNav = true;
+
+    // Inline Modals
+    private FrameLayout modalOverlay;
+    private LinearLayout modalWifiPassword;
+    private TextView modalWifiTitle;
+    private EditText inputWifiPassword;
+    private TextView btnWifiCancel;
+    private TextView btnWifiConnect;
+
+    private LinearLayout modalLanguagePicker;
+    private TextView langOptEn;
+    private TextView langOptFil;
+    private TextView langOptEs;
+    private TextView langOptJa;
+    private TextView langOptZh;
+    private TextView btnLangClose;
+
+    private WifiManager wifiManager;
+    private Handler handler;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        try {
-            requestWindowFeature(Window.FEATURE_NO_TITLE);
-        } catch (Throwable ignored) {
+        if (isAlreadyProvisioned()) {
+            disableSelfAndLaunchHome();
+            return;
         }
 
-        // Configure window to show over lockscreen if keyguard ever initializes early
-        try {
-            setShowWhenLocked(true);
-            setTurnScreenOn(true);
-            Window window = getWindow();
-            if (window != null) {
-                window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
-                        | WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
-                        | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
-                        | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
-            }
-        } catch (Throwable ignored) {
-        }
-
+        configureEdgeToEdgeWindow();
         setContentView(R.layout.activity_arc_setup);
 
-        mCardContainer = findViewById(R.id.card_container);
-        mDot1 = findViewById(R.id.dot_1);
-        mDot2 = findViewById(R.id.dot_2);
-        mDot3 = findViewById(R.id.dot_3);
-        mTxtBadge = findViewById(R.id.txt_badge);
-        mTxtTitle = findViewById(R.id.txt_title);
-        mTxtSubtitle = findViewById(R.id.txt_subtitle);
-        mTxtFeatureTitle = findViewById(R.id.txt_feature_title);
-        mTxtFeatureDesc = findViewById(R.id.txt_feature_desc);
-        mBtnNext = findViewById(R.id.btn_next);
+        wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        handler = new Handler(Looper.getMainLooper());
 
-        if (mBtnNext != null) {
-            mBtnNext.setOnClickListener(this);
+        // Enable location services so Wi-Fi scanning works immediately without popups
+        try {
+            Settings.Secure.putInt(getContentResolver(), Settings.Secure.LOCATION_MODE, 3);
+        } catch (Throwable ignored) {
         }
 
-        applyImmersiveSetupMode();
-        updateStepUi(false);
+        bindViews();
+        setStatusBarLocked(true);
+        renderStep();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        applyImmersiveSetupMode();
+        configureEdgeToEdgeWindow();
+        if (currentStep == 2) {
+            triggerWifiScan();
+        } else if (currentStep == 3 || currentStep == 4) {
+            renderStep();
+        }
     }
 
-    private void applyImmersiveSetupMode() {
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) {
+            configureEdgeToEdgeWindow();
+        }
+    }
+
+    private void configureEdgeToEdgeWindow() {
         try {
             Window window = getWindow();
-            if (window == null) return;
+            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+            window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS
+                    | WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
+            window.setStatusBarColor(Color.TRANSPARENT);
+            window.setNavigationBarColor(Color.TRANSPARENT);
 
-            window.setDecorFitsSystemWindows(false);
-            WindowInsetsController controller = window.getInsetsController();
-            if (controller != null) {
-                controller.hide(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
-                controller.setSystemBarsBehavior(
-                        WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
-            }
+            WindowManager.LayoutParams lp = window.getAttributes();
+            // LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS = 3 (eliminates top black cutout bar)
+            lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS;
+            window.setAttributes(lp);
 
             View decor = window.getDecorView();
-            if (decor != null) {
-                // 0x01600000 = STATUS_BAR_DISABLE_EXPAND | STATUS_BAR_DISABLE_HOME | STATUS_BAR_DISABLE_RECENT
-                decor.setSystemUiVisibility(
-                        View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                        | View.SYSTEM_UI_FLAG_FULLSCREEN
-                        | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                        | 0x01600000);
-            }
-        } catch (Throwable ignored) {
-            // Fallback to standard immersive if STATUS_BAR flag is restricted
-            try {
-                View decor = getWindow().getDecorView();
-                if (decor != null) {
-                    decor.setSystemUiVisibility(
-                            View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+            decor.setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                             | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                             | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                             | View.SYSTEM_UI_FLAG_FULLSCREEN
-                            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
-                }
-            } catch (Throwable ignored2) {
-            }
-        }
-    }
-
-    @Override
-    public void onClick(View v) {
-        if (mCurrentStep < 2) {
-            mCurrentStep++;
-            updateStepUi(true);
-        } else {
-            completeSystemProvisioning();
-        }
-    }
-
-    private void updateStepUi(boolean animate) {
-        if (animate && mCardContainer != null) {
-            mCardContainer.animate()
-                    .alpha(0f)
-                    .translationY(-20f)
-                    .setDuration(140)
-                    .withEndAction(this)
-                    .start();
-        } else {
-            applyStepContent();
-        }
-    }
-
-    @Override
-    public void run() {
-        applyStepContent();
-        if (mCardContainer != null) {
-            mCardContainer.setTranslationY(20f);
-            mCardContainer.animate()
-                    .alpha(1f)
-                    .translationY(0f)
-                    .setDuration(220)
-                    .start();
-        }
-    }
-
-    private void applyStepContent() {
-        updateStepDots(mCurrentStep);
-
-        if (mCurrentStep == 0) {
-            if (mTxtBadge != null) mTxtBadge.setText("ARCOS • V0-ALPHA");
-            if (mTxtTitle != null) mTxtTitle.setText("Welcome to ArcOS");
-            if (mTxtSubtitle != null) {
-                mTxtSubtitle.setText("Engineered from the ground up for fluidity, precision scaling, and native hardware harmony.");
-            }
-            if (mTxtFeatureTitle != null) mTxtFeatureTitle.setText("Native System Architecture");
-            if (mTxtFeatureDesc != null) {
-                mTxtFeatureDesc.setText("• 374 DP (462 DPI) Precision Display Scaling\n• 120Hz AMOLED Latch Optimization\n• Deep Hardware & Haptic Integration");
-            }
-            if (mBtnNext != null) mBtnNext.setText("Begin Setup");
-
-        } else if (mCurrentStep == 1) {
-            if (mTxtBadge != null) mTxtBadge.setText("INTERFACE & NAVIGATION");
-            if (mTxtTitle != null) mTxtTitle.setText("Fluid By Design");
-            if (mTxtSubtitle != null) {
-                mTxtSubtitle.setText("ArcOS replaces legacy clutter with unified gesture navigation and calibrated visual density.");
-            }
-            if (mTxtFeatureTitle != null) mTxtFeatureTitle.setText("Active Display Profile");
-            if (mTxtFeatureDesc != null) {
-                mTxtFeatureDesc.setText("• Target Density: 462 DPI (374 DP)\n• Gesture Navigation: Enabled\n• SurfaceFlinger Refresh Latch: Active");
-            }
-            if (mBtnNext != null) mBtnNext.setText("Continue");
-
-        } else {
-            if (mTxtBadge != null) mTxtBadge.setText("PROVISIONING READY");
-            if (mTxtTitle != null) mTxtTitle.setText("You're All Set");
-            if (mTxtSubtitle != null) {
-                mTxtSubtitle.setText("Your device is configured and ready. Tap below to finalize system provisioning and enter ArcOS.");
-            }
-            if (mTxtFeatureTitle != null) mTxtFeatureTitle.setText("System Status");
-            if (mTxtFeatureDesc != null) {
-                mTxtFeatureDesc.setText("• Android 16 Core: Provisioned\n• Hardware HALs: Connected\n• Security & Keyguard: Ready");
-            }
-            if (mBtnNext != null) mBtnNext.setText("Enter ArcOS");
-        }
-    }
-
-    private void updateStepDots(int step) {
-        setDotWidthAndAlpha(mDot1, step == 0 ? 24 : 8, step == 0 ? 1.0f : 0.35f);
-        setDotWidthAndAlpha(mDot2, step == 1 ? 24 : 8, step == 1 ? 1.0f : 0.35f);
-        setDotWidthAndAlpha(mDot3, step == 2 ? 24 : 8, step == 2 ? 1.0f : 0.35f);
-    }
-
-    private void setDotWidthAndAlpha(View dot, int widthDp, float alpha) {
-        if (dot == null) return;
-        try {
-            DisplayMetrics dm = getResources().getDisplayMetrics();
-            int widthPx = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, widthDp, dm);
-            LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) dot.getLayoutParams();
-            if (lp != null) {
-                lp.width = widthPx;
-                dot.setLayoutParams(lp);
-            }
-            dot.setAlpha(alpha);
+                            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            );
         } catch (Throwable ignored) {
         }
     }
 
-    private void completeSystemProvisioning() {
-        ContentResolver cr = getContentResolver();
+    private void bindViews() {
+        rootContainer = (FrameLayout) findViewById(R.id.root_container);
+        screenDark = (LinearLayout) findViewById(R.id.screen_dark);
+        screenLight = (LinearLayout) findViewById(R.id.screen_light);
 
-        // 1. Apply system defaults safely
-        try {
-            Settings.Secure.putInt(cr, "navigation_mode", 2);
-        } catch (Throwable ignored) {
-        }
+        // Dark Screen
+        darkTitleLine1 = (TextView) findViewById(R.id.dark_title_line1);
+        darkTitleLine2 = (TextView) findViewById(R.id.dark_title_line2);
+        darkFinalSummary = (TextView) findViewById(R.id.dark_final_summary);
+        btnDarkNext = (FrameLayout) findViewById(R.id.btn_dark_next);
+        welcomeBottomLinks = (LinearLayout) findViewById(R.id.welcome_bottom_links);
+        btnLanguage = (TextView) findViewById(R.id.btn_language);
+        btnAccessibility = (TextView) findViewById(R.id.btn_accessibility);
+        btnEmergency = (TextView) findViewById(R.id.btn_emergency);
+        btnFinalBack = (TextView) findViewById(R.id.btn_final_back);
 
-        try {
-            Settings.System.putInt(cr, Settings.System.ACCELEROMETER_ROTATION, 0);
-            Settings.System.putInt(cr, Settings.System.HAPTIC_FEEDBACK_ENABLED, 1);
-        } catch (Throwable ignored) {
-        }
-
-        // 2. Mark Android 16 Device Provisioned & User Setup Complete (Native OS Organ Bit)
-        try {
-            Settings.Global.putInt(cr, Settings.Global.DEVICE_PROVISIONED, 1);
-        } catch (Throwable ignored) {
-        }
-
-        try {
-            Settings.Secure.putInt(cr, "user_setup_complete", 1);
-            Settings.Secure.putInt(cr, "tv_user_setup_complete", 1);
-        } catch (Throwable ignored) {
-        }
-
-        // 3. Disable ArcSetupActivity component so it never intercepts HOME again
-        try {
-            PackageManager pm = getPackageManager();
-            ComponentName name = new ComponentName(this, ArcSetupActivity.class);
-            pm.setComponentEnabledSetting(
-                    name,
-                    PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
-                    PackageManager.DONT_KILL_APP);
-        } catch (Throwable ignored) {
-        }
-
-        // 4. Transition cleanly to the default Home Launcher
-        try {
-            Intent homeIntent = new Intent(Intent.ACTION_MAIN);
-            homeIntent.addCategory(Intent.CATEGORY_HOME);
-            homeIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            startActivity(homeIntent);
-        } catch (Throwable ignored) {
-        }
-
-        finish();
-        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
-    }
-
-    @Override
-    public void onBackPressed() {
-        if (mCurrentStep > 0) {
-            mCurrentStep--;
-            updateStepUi(true);
-        }
-        // Block back press on step 0 during provisioning
-    }
-}
+        // Underline welcome bottom links to match Image 1
+        btnLanguage.setPaintFlags(btnLanguage.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
+        btnAccessibility.setPaintFlags(btnAccessibility.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
+        btnEmergency.setPaintFlags(btnEmergency.getPaintFlags() | Paint.UNDER
