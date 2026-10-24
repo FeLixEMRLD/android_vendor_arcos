@@ -1,8 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <permissions>
     <privapp-permissions package="com.arcos.setupwizard">
-        <permission name="android.permission.WRITE_SETTINGS"/>
-        <permission name="android.permission.WRITE_SECURE_SETTINGS"/>
-        <permission name="android.permission.CHANGE_COMPONENT_ENABLED_STATE"/>
+        <permission name="android.permission.WRITE_SECURE_SETTINGS" />
+        <permission name="android.permission.WRITE_SETTINGS" />
+        <permission name="android.permission.STATUS_BAR" />
+        <permission name="android.permission.CHANGE_CONFIGURATION" />
+        <permission name="android.permission.CHANGE_COMPONENT_ENABLED_STATE" />
+        <permission name="android.permission.SET_TIME" />
+        <permission name="android.permission.SET_TIME_ZONE" />
+        <permission name="android.permission.DISPATCH_PROVISIONING_MESSAGE" />
+        <permission name="android.permission.INTERACT_ACROSS_USERS" />
+        <permission name="android.permission.INTERACT_ACROSS_USERS_FULL" />
+        <permission name="android.permission.MANAGE_USERS" />
     </privapp-permissions>
 </permissions>
