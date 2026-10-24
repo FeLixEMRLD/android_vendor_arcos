@@ -19,7 +19,35 @@ jobs:
       - name: Install Android Build & Image Tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y android-sdk-libsparse-utils e2fsprogs zip unzip wget curl jq xz-utils
+          sudo apt-get install -y android-sdk-libsparse-utils e2fsprogs zip unzip wget curl jq xz-utils openjdk-17-jdk
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Compile ArcOS SetupWizard APK from Source
+        run: |
+          BUILD_TOOLS="$ANDROID_SDK_ROOT/build-tools/34.0.0"
+          ANDROID_JAR="$ANDROID_SDK_ROOT/platforms/android-34/android.jar"
+          SW_DIR="packages/ArcOSSetupWizard"
+          mkdir -p build_sw/gen build_sw/obj build_sw/apk
+          
+          # 1. Generate R.java
+          "$BUILD_TOOLS/aapt" package -f -m -J build_sw/gen -M "$SW_DIR/AndroidManifest.xml" -S "$SW_DIR/res" -I "$ANDROID_JAR"
+          
+          # 2. Compile Java source to .class (Java 11 bytecode for Android d8)
+          javac --release 11 -cp "$ANDROID_JAR" -d build_sw/obj build_sw/gen/com/arcos/setupwizard/R.java "$SW_DIR/src/com/arcos/setupwizard/ArcSetupActivity.java"
+          
+          # 3. Convert .class to classes.dex using d8
+          "$BUILD_TOOLS/d8" --lib "$ANDROID_JAR" --output build_sw/apk build_sw/obj/com/arcos/setupwizard/*.class
+          
+          # 4. Package resources and AndroidManifest into APK
+          "$BUILD_TOOLS/aapt" package -f -M "$SW_DIR/AndroidManifest.xml" -S "$SW_DIR/res" -I "$ANDROID_JAR" -F build_sw/ArcOSSetupWizard-unaligned.apk build_sw/apk
+          
+          # 5. Zipalign
+          "$BUILD_TOOLS/zipalign" -v -p 4 build_sw/ArcOSSetupWizard-unaligned.apk build_sw/ArcOSSetupWizard-unsigned.apk
+          
+          # 6. Fetch AOSP Platform Key (used by TrebleDroid AOSP GSI) and sign as a true System App!
+          wget -q https://raw.githubusercontent.com/aosp-mirror/platform_build/master/target/product/security/platform.pk8 -O build_sw/platform.pk8
+          wget -q https://raw.githubusercontent.com/aosp-mirror/platform_build/master/target/product/security/platform.x509.pem -O build_sw/platform.x509.pem
+          "$BUILD_TOOLS/apksigner" sign --key build_sw/platform.pk8 --cert build_sw/platform.x509.pem --out build_sw/ArcOSSetupWizard.apk build_sw/ArcOSSetupWizard-unsigned.apk
 
       - name: Download Base Android 16 GSI (TrebleDroid AOSP + GApps)
         env:
@@ -31,14 +59,10 @@ jobs:
           DOWNLOAD_URL=$(curl -sL -H "Authorization: Bearer $GH_TOKEN" https://api.github.com/repos/ponces/treble_aosp/releases | jq -r '.[].assets[]? | select(.name | test("^aosp-arm64-ab-gapps-16\\.0-.*\\.img\\.xz$")) | .browser_download_url' | head -n 1)
           
           if [ -z "$DOWNLOAD_URL" ] || [ "$DOWNLOAD_URL" == "null" ]; then
-            echo "API returned empty, using fallback Android 16 GApps URL..."
             DOWNLOAD_URL="https://github.com/ponces/treble_aosp/releases/download/v2025.06.25/aosp-arm64-ab-gapps-16.0-20250625.img.xz"
           fi
           
-          echo "Downloading from: $DOWNLOAD_URL"
           wget -q --show-progress -O system.img.xz "$DOWNLOAD_URL"
-          
-          echo "Extracting system.img..."
           unxz -T0 system.img.xz
 
       - name: Mount and Modify System Image for ArcOS
@@ -51,7 +75,7 @@ jobs:
           mkdir -p mount_point
           sudo mount -o loop,rw system.img mount_point
           
-          # 1. Patch existing build.prop values so ro.debuggable=1 and density=462 take priority
+          # 1. Patch build.prop values
           sudo sed -i 's/ro.debuggable=0/ro.debuggable=1/g' mount_point/system/build.prop
           sudo sed -i 's/ro.adb.secure=1/ro.adb.secure=0/g' mount_point/system/build.prop
           sudo sed -i '/ro.sf.lcd_density/d' mount_point/system/build.prop
@@ -60,33 +84,28 @@ jobs:
           sudo sed -i '/ro.sf.lcd_density/d' mount_point/system/product/etc/build.prop || true
           sudo bash -c "echo 'ro.sf.lcd_density=462' >> mount_point/system/product/etc/build.prop"
           
-          # 2. Inject ArcOS Init & UDFPS Hardware Bridge Scripts
+          # 2. Inject ArcOS Init Scripts
           sudo cp ../prebuilt/bin/arcos_init.sh mount_point/system/bin/arcos_init.sh
           sudo cp ../prebuilt/bin/arcos_udfps.sh mount_point/system/bin/arcos_udfps.sh
           sudo chmod 755 mount_point/system/bin/arcos_init.sh mount_point/system/bin/arcos_udfps.sh
           sudo chown 0:2000 mount_point/system/bin/arcos_init.sh mount_point/system/bin/arcos_udfps.sh
           
-          # 3. Inject init.arcos.rc into /system/etc/init/
           sudo cp ../prebuilt/etc/init/init.arcos.rc mount_point/system/etc/init/init.arcos.rc
           sudo chmod 644 mount_point/system/etc/init/init.arcos.rc
           sudo chown 0:0 mount_point/system/etc/init/init.arcos.rc
 
-          # 4. Build, Align, Sign, and Inject Emerald Overlay using Google's official SDK Build-Tools
-          BUILD_TOOLS=$(ls -d $ANDROID_SDK_ROOT/build-tools/* | sort -V | tail -n 1)
-          ANDROID_JAR=$(ls $ANDROID_SDK_ROOT/platforms/android-*/android.jar | sort -V | head -n 1)
-          echo "Using Build-Tools: $BUILD_TOOLS"
-          echo "Using Android SDK JAR: $ANDROID_JAR"
-          
-          "$BUILD_TOOLS/aapt" package -f --auto-add-overlay -M ../overlay/ArcOSDevicesEmerald/AndroidManifest.xml -S ../overlay/ArcOSDevicesEmerald/res -I "$ANDROID_JAR" -F ArcOSDevicesEmerald-unaligned.apk
-          "$BUILD_TOOLS/zipalign" -v -p 4 ArcOSDevicesEmerald-unaligned.apk ArcOSDevicesEmerald.apk
-          
-          rm -f arcos.keystore
-          keytool -genkey -v -keystore arcos.keystore -alias arcos -keyalg RSA -keysize 2048 -validity 10000 -storepass arcos123 -keypass arcos123 -dname "CN=ArcOS, OU=Dev, O=ArcOS, L=PH, S=PH, C=PH"
-          "$BUILD_TOOLS/apksigner" sign --ks arcos.keystore --ks-pass pass:arcos123 --key-pass pass:arcos123 ArcOSDevicesEmerald.apk
-          
-          sudo mkdir -p mount_point/system/product/overlay/ArcOSDevicesEmerald
-          sudo cp ArcOSDevicesEmerald.apk mount_point/system/product/overlay/ArcOSDevicesEmerald/
-          sudo chmod 644 mount_point/system/product/overlay/ArcOSDevicesEmerald/ArcOSDevicesEmerald.apk
+          # 3. Remove Stock AOSP/Google SetupWizard so ArcOSSetupWizard takes full control of First Boot
+          sudo rm -rf mount_point/system/system_ext/priv-app/SetupWizard*
+          sudo rm -rf mount_point/system/product/priv-app/SetupWizard*
+          sudo rm -rf mount_point/system/priv-app/Provision*
+          sudo rm -rf mount_point/system/system_ext/priv-app/Provision*
+
+          # 4. Inject ArcOSSetupWizard into /system/system_ext/priv-app/
+          sudo mkdir -p mount_point/system/system_ext/priv-app/ArcOSSetupWizard
+          sudo cp ../build_sw/ArcOSSetupWizard.apk mount_point/system/system_ext/priv-app/ArcOSSetupWizard/ArcOSSetupWizard.apk
+          sudo chmod 644 mount_point/system/system_ext/priv-app/ArcOSSetupWizard/ArcOSSetupWizard.apk
+          sudo cp ../packages/ArcOSSetupWizard/privapp-permissions-arcos.xml mount_point/system/system_ext/etc/permissions/privapp-permissions-arcos.xml
+          sudo chmod 644 mount_point/system/system_ext/etc/permissions/privapp-permissions-arcos.xml
 
           # 5. Unmount and shrink image back to minimum size for DSU
           sudo umount mount_point
