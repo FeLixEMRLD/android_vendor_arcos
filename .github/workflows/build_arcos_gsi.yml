@@ -119,7 +119,7 @@ jobs:
 
           "$BUILD_TOOLS/apksigner" verify -v build/ArcOSSetupWizard.apk
           ls -lh build/ArcOSSetupWizard.apk
-          
+
       - name: Mount & Customize ArcOS System Image
         run: |
           export WORKSPACE="$GITHUB_WORKSPACE"
@@ -128,16 +128,15 @@ jobs:
           echo "Expanding system.img by 1536MB..."
           dd if=/dev/zero bs=1M count=1536 >> system.img
           sudo e2fsck -fy system.img || true
-          sudo e2fsck -fy -E unshare_blocks system.img || true
           sudo resize2fs system.img
+          sudo e2fsck -fy -E unshare_blocks system.img || true
+          sudo e2fsck -fy system.img || true
 
           export MOUNT_DIR="$WORKSPACE/work/mnt"
           mkdir -p "$MOUNT_DIR"
           sudo mount -o loop,rw system.img "$MOUNT_DIR"
 
           echo "=== Removing Stock & GApps SetupWizards Across All Partitions ==="
-          # Remove Provision, SetupWizardPrebuilt, GoogleSetupWizard, OneTimeInitializer
-          # (Does NOT touch ManagedProvisioning)
           sudo find "$MOUNT_DIR" -maxdepth 5 -type d \( \
             -iname "*SetupWizard*" -o \
             -iname "Provision" -o \
@@ -225,6 +224,6 @@ jobs:
       - name: Upload ArcOS DSU Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ArcOS-V0-ALPHA-16.0-emerald-DSU
-          path: work/ArcOS-V0-ALPHA-16.0-emerald-DSU.zip
+          name: ArcOS-V0.1-ALPHA-16.0-emerald-DSU
+          path: work/ArcOS-V0.1-ALPHA-16.0-emerald-DSU.zip
           retention-days: 7
