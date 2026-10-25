@@ -123,32 +123,41 @@ public class ArcSetupActivity extends Activity implements View.OnClickListener, 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (isAlreadyProvisioned()) {
-            disableSelfAndLaunchHome();
-            return;
-        }
-        density = getResources().getDisplayMetrics().density;
-        configureEdgeToEdgeWindow();
-        setContentView(R.layout.activity_arc_setup);
-
-        wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-        handler = new Handler(Looper.getMainLooper());
-
         try {
-            Settings.Secure.putInt(getContentResolver(), Settings.Secure.LOCATION_MODE, 3);
-        } catch (Throwable ignored) {
-        }
+            if (isAlreadyProvisioned()) {
+                disableSelfAndLaunchHome();
+                return;
+            }
+            density = getResources().getDisplayMetrics().density;
+            setContentView(R.layout.activity_arc_setup);
+            configureEdgeToEdgeWindow();
 
-        bindViews();
-        setStatusBarLocked(true);
-        renderStep();
+            handler = new Handler(Looper.getMainLooper());
+            try {
+                wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+            } catch (Throwable ignored) {
+            }
+            try {
+                Settings.Secure.putInt(getContentResolver(), Settings.Secure.LOCATION_MODE, 3);
+            } catch (Throwable ignored) {
+            }
+
+            bindViews();
+            setStatusBarLocked(true);
+            renderStep();
+        } catch (Throwable t) {
+            showEmergencyFallbackUi(t);
+        }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        configureEdgeToEdgeWindow();
-        renderStep();
+        try {
+            configureEdgeToEdgeWindow();
+            renderStep();
+        } catch (Throwable ignored) {
+        }
     }
 
     @Override
@@ -156,6 +165,33 @@ public class ArcSetupActivity extends Activity implements View.OnClickListener, 
         super.onWindowFocusChanged(hasFocus);
         if (hasFocus) {
             configureEdgeToEdgeWindow();
+        }
+    }
+
+    private void showEmergencyFallbackUi(Throwable t) {
+        try {
+            LinearLayout fallback = new LinearLayout(this);
+            fallback.setOrientation(LinearLayout.VERTICAL);
+            fallback.setGravity(Gravity.CENTER);
+            fallback.setBackgroundColor(Color.BLACK);
+            fallback.setPadding(48, 96, 48, 96);
+
+            TextView msg = new TextView(this);
+            msg.setText("ArcOS Setup Error:\n" + t.toString());
+            msg.setTextColor(Color.WHITE);
+            msg.setTextSize(14);
+            fallback.addView(msg);
+
+            TextView btn = new TextView(this);
+            btn.setId(9999);
+            btn.setText("\n[ Tap Here to Complete Setup ]");
+            btn.setTextColor(0xFFE5A472);
+            btn.setTextSize(18);
+            btn.setOnClickListener(this);
+            fallback.addView(btn);
+
+            setContentView(fallback);
+        } catch (Throwable ignored) {
         }
     }
 
@@ -208,21 +244,36 @@ public class ArcSetupActivity extends Activity implements View.OnClickListener, 
         btnEmergency = (TextView) findViewById(R.id.btn_emergency);
         btnFinalBack = (TextView) findViewById(R.id.btn_final_back);
 
-        btnLanguage.setPaintFlags(btnLanguage.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
-        btnAccessibility.setPaintFlags(btnAccessibility.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
-        btnEmergency.setPaintFlags(btnEmergency.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
-        btnFinalBack.setPaintFlags(btnFinalBack.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
-
-        btnDarkNext.setOnClickListener(this);
-        btnLanguage.setOnClickListener(this);
-        btnAccessibility.setOnClickListener(this);
-        btnEmergency.setOnClickListener(this);
-        btnFinalBack.setOnClickListener(this);
+        if (btnLanguage != null) {
+            btnLanguage.setPaintFlags(btnLanguage.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
+            btnLanguage.setOnClickListener(this);
+        }
+        if (btnAccessibility != null) {
+            btnAccessibility.setPaintFlags(btnAccessibility.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
+            btnAccessibility.setOnClickListener(this);
+        }
+        if (btnEmergency != null) {
+            btnEmergency.setPaintFlags(btnEmergency.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
+            btnEmergency.setOnClickListener(this);
+        }
+        if (btnFinalBack != null) {
+            btnFinalBack.setPaintFlags(btnFinalBack.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
+            btnFinalBack.setOnClickListener(this);
+        }
+        if (btnDarkNext != null) {
+            btnDarkNext.setOnClickListener(this);
+        }
 
         btnLightBack = (FrameLayout) findViewById(R.id.btn_light_back);
         btnLightNext = (FrameLayout) findViewById(R.id.btn_light_next);
-        btnLightBack.setBackground(makeCircleOutline(0xFFCCCCCC, 1));
-        btnLightNext.setBackground(makeCircleOutline(0xFF222222, 2));
+        if (btnLightBack != null) {
+            btnLightBack.setBackground(makeCircleOutline(0xFFCCCCCC, 1));
+            btnLightBack.setOnClickListener(this);
+        }
+        if (btnLightNext != null) {
+            btnLightNext.setBackground(makeCircleOutline(0xFF222222, 2));
+            btnLightNext.setOnClickListener(this);
+        }
 
         lightTitleLine1 = (TextView) findViewById(R.id.light_title_line1);
         lightTitleLine2 = (TextView) findViewById(R.id.light_title_line2);
@@ -233,11 +284,9 @@ public class ArcSetupActivity extends Activity implements View.OnClickListener, 
         btnLightBottomSecondary = (TextView) findViewById(R.id.btn_light_bottom_secondary);
         btnLightBottomTertiary = (TextView) findViewById(R.id.btn_light_bottom_tertiary);
 
-        btnLightBack.setOnClickListener(this);
-        btnLightNext.setOnClickListener(this);
-        btnLightBottomPrimary.setOnClickListener(this);
-        btnLightBottomSecondary.setOnClickListener(this);
-        btnLightBottomTertiary.setOnClickListener(this);
+        if (btnLightBottomPrimary != null) btnLightBottomPrimary.setOnClickListener(this);
+        if (btnLightBottomSecondary != null) btnLightBottomSecondary.setOnClickListener(this);
+        if (btnLightBottomTertiary != null) btnLightBottomTertiary.setOnClickListener(this);
 
         modalOverlay = (FrameLayout) findViewById(R.id.modal_overlay);
         modalTitle = (TextView) findViewById(R.id.modal_title);
@@ -246,11 +295,13 @@ public class ArcSetupActivity extends Activity implements View.OnClickListener, 
         btnModalCancel = (TextView) findViewById(R.id.btn_modal_cancel);
         btnModalConfirm = (TextView) findViewById(R.id.btn_modal_confirm);
 
-        btnModalCancel.setOnClickListener(this);
-        btnModalConfirm.setOnClickListener(this);
+        if (btnModalCancel != null) btnModalCancel.setOnClickListener(this);
+        if (btnModalConfirm != null) btnModalConfirm.setOnClickListener(this);
     }
 
     private void addCardRow(String leftIcon, String title, String subtitle, String rightStatus, int rowId, boolean showDivider) {
+        if (cardListContainer == null) return;
+
         LinearLayout row = new LinearLayout(this);
         row.setId(rowId);
         row.setOrientation(LinearLayout.HORIZONTAL);
@@ -313,132 +364,142 @@ public class ArcSetupActivity extends Activity implements View.OnClickListener, 
     }
 
     private void renderStep() {
-        handler.removeCallbacks(this);
-        modalOverlay.setVisibility(View.GONE);
+        try {
+            if (handler != null) handler.removeCallbacks(this);
+            if (modalOverlay != null) modalOverlay.setVisibility(View.GONE);
+            if (rootContainer == null || screenDark == null || screenLight == null) return;
 
-        if (currentStep == 1 || currentStep == 6) {
-            rootContainer.setBackgroundResource(R.drawable.bg_arc_ambient);
-            screenDark.setVisibility(View.VISIBLE);
-            screenLight.setVisibility(View.GONE);
+            if (currentStep == 1 || currentStep == 6) {
+                rootContainer.setBackgroundResource(R.drawable.bg_arc_ambient);
+                screenDark.setVisibility(View.VISIBLE);
+                screenLight.setVisibility(View.GONE);
 
-            if (currentStep == 1) {
-                darkTitleLine1.setText("Hi, lets set up your");
-                darkTitleLine2.setText("New Device");
-                darkFinalSummary.setVisibility(View.GONE);
-                welcomeBottomLinks.setVisibility(View.VISIBLE);
-                btnFinalBack.setVisibility(View.GONE);
-            } else {
-                darkTitleLine1.setText("You're all set,");
-                darkTitleLine2.setText("Welcome to ArcOS");
-                welcomeBottomLinks.setVisibility(View.GONE);
-                btnFinalBack.setVisibility(View.VISIBLE);
-                darkFinalSummary.setVisibility(View.VISIBLE);
-
-                String netStatus = getConnectedWifiSsid();
-                if (netStatus == null || netStatus.isEmpty()) {
-                    netStatus = offlineSkipGoogleAccount ? "Offline Setup" : "Mobile Data / Ready";
+                if (currentStep == 1) {
+                    darkTitleLine1.setText("Hi, lets set up your");
+                    darkTitleLine2.setText("New Device");
+                    darkFinalSummary.setVisibility(View.GONE);
+                    welcomeBottomLinks.setVisibility(View.VISIBLE);
+                    btnFinalBack.setVisibility(View.GONE);
                 } else {
-                    netStatus = "Wi-Fi (" + netStatus + ")";
+                    darkTitleLine1.setText("You're all set,");
+                    darkTitleLine2.setText("Welcome to ArcOS");
+                    welcomeBottomLinks.setVisibility(View.GONE);
+                    btnFinalBack.setVisibility(View.VISIBLE);
+                    darkFinalSummary.setVisibility(View.VISIBLE);
+
+                    String netStatus = getConnectedWifiSsid();
+                    if (netStatus == null || netStatus.isEmpty()) {
+                        netStatus = offlineSkipGoogleAccount ? "Offline Setup" : "Mobile Data / Ready";
+                    } else {
+                        netStatus = "Wi-Fi (" + netStatus + ")";
+                    }
+                    String lockStatus = isDeviceSecureLockSet() ? "Screen Lock Active" : "Skipped";
+                    String navStatus = useGestureNav ? "Gesture Navigation" : "3-Button Navigation";
+                    darkFinalSummary.setText(
+                            "Network: " + netStatus + "\n"
+                                    + "Security: " + lockStatus + "\n"
+                                    + "Navigation: " + navStatus + "\n\n"
+                                    + "Tap the arrow below to launch ArcOS."
+                    );
                 }
-                String lockStatus = isDeviceSecureLockSet() ? "Screen Lock Active" : "Skipped";
-                String navStatus = useGestureNav ? "Gesture Navigation" : "3-Button Navigation";
-                darkFinalSummary.setText(
-                        "Network: " + netStatus + "\n"
-                                + "Security: " + lockStatus + "\n"
-                                + "Navigation: " + navStatus + "\n\n"
-                                + "Tap the arrow below to launch ArcOS."
-                );
+                return;
             }
-            return;
-        }
 
-        rootContainer.setBackgroundColor(Color.WHITE);
-        screenDark.setVisibility(View.GONE);
-        screenLight.setVisibility(View.VISIBLE);
-        cardListContainer.removeAllViews();
-        btnLightBottomTertiary.setVisibility(View.GONE);
+            rootContainer.setBackgroundColor(Color.WHITE);
+            screenDark.setVisibility(View.GONE);
+            screenLight.setVisibility(View.VISIBLE);
+            cardListContainer.removeAllViews();
+            btnLightBottomTertiary.setVisibility(View.GONE);
 
-        if (currentStep == 2) {
-            lightTitleLine1.setText("Let's connect to a");
-            lightTitleLine2.setText("network");
-            String connected = getConnectedWifiSsid();
-            lightSubtitle.setText(connected != null ? "Connected to " + connected : "Select a Wi-Fi network");
+            if (currentStep == 2) {
+                lightTitleLine1.setText("Let's connect to a");
+                lightTitleLine2.setText("network");
+                String connected = getConnectedWifiSsid();
+                lightSubtitle.setText(connected != null ? "Connected to " + connected : "Select a Wi-Fi network");
 
-            btnLightBottomPrimary.setVisibility(View.VISIBLE);
-            btnLightBottomPrimary.setText(showAllWifi ? "Refresh networks" : "View all networks");
-            btnLightBottomSecondary.setVisibility(View.VISIBLE);
-            btnLightBottomSecondary.setText("Continue with Mobile Data");
-            btnLightBottomTertiary.setVisibility(View.VISIBLE);
-            btnLightBottomTertiary.setText("Continue without Wi-Fi");
+                btnLightBottomPrimary.setVisibility(View.VISIBLE);
+                btnLightBottomPrimary.setText(showAllWifi ? "Refresh networks" : "View all networks");
+                btnLightBottomSecondary.setVisibility(View.VISIBLE);
+                btnLightBottomSecondary.setText("Continue with Mobile Data");
+                btnLightBottomTertiary.setVisibility(View.VISIBLE);
+                btnLightBottomTertiary.setText("Continue without Wi-Fi");
 
-            triggerWifiScan();
-        } else if (currentStep == 3) {
-            lightTitleLine1.setText("Google Services &");
-            lightTitleLine2.setText("Permissions");
-            lightSubtitle.setText("Configure system & GMS services");
+                triggerWifiScan();
+            } else if (currentStep == 3) {
+                lightTitleLine1.setText("Google Services &");
+                lightTitleLine2.setText("Permissions");
+                lightSubtitle.setText("Configure system & GMS services");
 
-            if (!offlineSkipGoogleAccount) {
-                String acc = getSignedInGoogleAccount();
-                addCardRow(
-                        null,
-                        acc != null ? "Google Account Added" : "Sign in to Google",
-                        acc != null ? acc : "Add your Google Account for Play Store & sync",
-                        acc != null ? "Added" : "Sign in",
-                        ID_GOOGLE_ACCOUNT,
-                        true
-                );
+                if (!offlineSkipGoogleAccount) {
+                    String acc = getSignedInGoogleAccount();
+                    addCardRow(
+                            null,
+                            acc != null ? "Google Account Added" : "Sign in to Google",
+                            acc != null ? acc : "Add your Google Account for Play Store & sync",
+                            acc != null ? "Added" : "Sign in",
+                            ID_GOOGLE_ACCOUNT,
+                            true
+                    );
+                }
+                addCardRow(null, "Use Location Services", "Allow apps & system to estimate location",
+                        optLocationEnabled ? "ON" : "OFF", ID_GOOGLE_LOC, true);
+                addCardRow(null, "Wi-Fi & Bluetooth Scanning", "Improve location & network accuracy",
+                        optScanningEnabled ? "ON" : "OFF", ID_GOOGLE_SCAN, true);
+                addCardRow(null, "Device Backup & Diagnostics", "Back up app data and system settings",
+                        optBackupEnabled ? "ON" : "OFF", ID_GOOGLE_BACKUP, false);
+
+                btnLightBottomPrimary.setVisibility(View.VISIBLE);
+                btnLightBottomPrimary.setText("Accept & Continue");
+                btnLightBottomSecondary.setVisibility(View.GONE);
+            } else if (currentStep == 4) {
+                lightTitleLine1.setText("Protect your");
+                lightTitleLine2.setText("device");
+                lightSubtitle.setText(isDeviceSecureLockSet()
+                        ? "Screen lock is active"
+                        : "Set a screen lock or skip for now");
+
+                addCardRow(null, "PIN", "4 to 16 numeric digits", "Set", ID_LOCK_PIN, true);
+                addCardRow(null, "Password", "High security alphanumeric password", "Set", ID_LOCK_PWD, true);
+                addCardRow(null, "Pattern", "Draw a simple pattern to unlock", "Set", ID_LOCK_PAT, false);
+
+                btnLightBottomPrimary.setVisibility(View.VISIBLE);
+                btnLightBottomPrimary.setText("Set Screen Lock");
+                btnLightBottomSecondary.setVisibility(View.VISIBLE);
+                btnLightBottomSecondary.setText("Skip for now");
+            } else if (currentStep == 5) {
+                lightTitleLine1.setText("System");
+                lightTitleLine2.setText("navigation");
+                lightSubtitle.setText("Choose how you move around ArcOS");
+
+                addCardRow(null, "Gesture Navigation", "Swipe up to go Home, swipe edges for Back",
+                        useGestureNav ? "Selected" : "", ID_NAV_GESTURE, true);
+                addCardRow(null, "3-Button Navigation", "Back, Home, and Overview buttons at bottom",
+                        !useGestureNav ? "Selected" : "", ID_NAV_THREE, false);
+
+                btnLightBottomPrimary.setVisibility(View.VISIBLE);
+                btnLightBottomPrimary.setText("Continue");
+                btnLightBottomSecondary.setVisibility(View.GONE);
             }
-            addCardRow(null, "Use Location Services", "Allow apps & system to estimate location",
-                    optLocationEnabled ? "ON" : "OFF", ID_GOOGLE_LOC, true);
-            addCardRow(null, "Wi-Fi & Bluetooth Scanning", "Improve location & network accuracy",
-                    optScanningEnabled ? "ON" : "OFF", ID_GOOGLE_SCAN, true);
-            addCardRow(null, "Device Backup & Diagnostics", "Back up app data and system settings",
-                    optBackupEnabled ? "ON" : "OFF", ID_GOOGLE_BACKUP, false);
-
-            btnLightBottomPrimary.setVisibility(View.VISIBLE);
-            btnLightBottomPrimary.setText("Accept & Continue");
-            btnLightBottomSecondary.setVisibility(View.GONE);
-        } else if (currentStep == 4) {
-            lightTitleLine1.setText("Protect your");
-            lightTitleLine2.setText("device");
-            lightSubtitle.setText(isDeviceSecureLockSet()
-                    ? "Screen lock is active"
-                    : "Set a screen lock or skip for now");
-
-            addCardRow(null, "PIN", "4 to 16 numeric digits", "Set", ID_LOCK_PIN, true);
-            addCardRow(null, "Password", "High security alphanumeric password", "Set", ID_LOCK_PWD, true);
-            addCardRow(null, "Pattern", "Draw a simple pattern to unlock", "Set", ID_LOCK_PAT, false);
-
-            btnLightBottomPrimary.setVisibility(View.VISIBLE);
-            btnLightBottomPrimary.setText("Set Screen Lock");
-            btnLightBottomSecondary.setVisibility(View.VISIBLE);
-            btnLightBottomSecondary.setText("Skip for now");
-        } else if (currentStep == 5) {
-            lightTitleLine1.setText("System");
-            lightTitleLine2.setText("navigation");
-            lightSubtitle.setText("Choose how you move around ArcOS");
-
-            addCardRow(null, "Gesture Navigation", "Swipe up to go Home, swipe edges for Back",
-                    useGestureNav ? "Selected" : "", ID_NAV_GESTURE, true);
-            addCardRow(null, "3-Button Navigation", "Back, Home, and Overview buttons at bottom",
-                    !useGestureNav ? "Selected" : "", ID_NAV_THREE, false);
-
-            btnLightBottomPrimary.setVisibility(View.VISIBLE);
-            btnLightBottomPrimary.setText("Continue");
-            btnLightBottomSecondary.setVisibility(View.GONE);
+        } catch (Throwable ignored) {
         }
     }
 
     @Override
     public void run() {
-        if (currentStep == 2) {
-            populateWifiRows();
-            handler.postDelayed(this, 3000);
+        try {
+            if (currentStep == 2) {
+                populateWifiRows();
+                handler.postDelayed(this, 3000);
+            }
+        } catch (Throwable ignored) {
         }
     }
 
     private void triggerWifiScan() {
         try {
+            if (wifiManager == null) {
+                wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+            }
             if (wifiManager != null) {
                 if (!wifiManager.isWifiEnabled()) {
                     wifiManager.setWifiEnabled(true);
@@ -448,24 +509,26 @@ public class ArcSetupActivity extends Activity implements View.OnClickListener, 
         } catch (Throwable ignored) {
         }
         populateWifiRows();
-        handler.removeCallbacks(this);
-        handler.postDelayed(this, 2500);
+        if (handler != null) {
+            handler.removeCallbacks(this);
+            handler.postDelayed(this, 2500);
+        }
     }
 
     private void populateWifiRows() {
-        if (currentStep != 2) {
-            return;
-        }
-        cardListContainer.removeAllViews();
-        scannedSsids.clear();
-        scannedSecured.clear();
-
-        String connectedSsid = getConnectedWifiSsid();
-        if (connectedSsid != null) {
-            lightSubtitle.setText("Connected to " + connectedSsid);
-        }
-
         try {
+            if (currentStep != 2 || cardListContainer == null) {
+                return;
+            }
+            cardListContainer.removeAllViews();
+            scannedSsids.clear();
+            scannedSecured.clear();
+
+            String connectedSsid = getConnectedWifiSsid();
+            if (connectedSsid != null) {
+                lightSubtitle.setText("Connected to " + connectedSsid);
+            }
+
             if (wifiManager != null) {
                 List<ScanResult> results = wifiManager.getScanResults();
                 if (results != null) {
@@ -490,22 +553,22 @@ public class ArcSetupActivity extends Activity implements View.OnClickListener, 
                     }
                 }
             }
+
+            if (scannedSsids.isEmpty()) {
+                addCardRow("\u25CE", "Scanning for networks...", null, "", ID_WIFI_BASE, false);
+                return;
+            }
+
+            for (int i = 0; i < scannedSsids.size(); i++) {
+                String ssid = scannedSsids.get(i);
+                boolean sec = scannedSecured.get(i).booleanValue();
+                String right = (connectedSsid != null && connectedSsid.equals(ssid))
+                        ? "Connected"
+                        : (sec ? "Secured" : "");
+                boolean showDiv = (i < scannedSsids.size() - 1);
+                addCardRow("\u25CE", ssid, null, right, ID_WIFI_BASE + i, showDiv);
+            }
         } catch (Throwable ignored) {
-        }
-
-        if (scannedSsids.isEmpty()) {
-            addCardRow("\u25CE", "Scanning for networks...", null, "", ID_WIFI_BASE, false);
-            return;
-        }
-
-        for (int i = 0; i < scannedSsids.size(); i++) {
-            String ssid = scannedSsids.get(i);
-            boolean sec = scannedSecured.get(i).booleanValue();
-            String right = (connectedSsid != null && connectedSsid.equals(ssid))
-                    ? "Connected"
-                    : (sec ? "Secured" : "");
-            boolean showDiv = (i < scannedSsids.size() - 1);
-            addCardRow("\u25CE", ssid, null, right, ID_WIFI_BASE + i, showDiv);
         }
     }
 
@@ -711,8 +774,12 @@ public class ArcSetupActivity extends Activity implements View.OnClickListener, 
             updateLocale.invoke(null, locale);
         } catch (Throwable ignored) {
         }
-        btnLanguage.setText("Language (" + locale.getDisplayLanguage() + ")");
-        modalOverlay.setVisibility(View.GONE);
+        if (btnLanguage != null) {
+            btnLanguage.setText("Language (" + locale.getDisplayLanguage() + ")");
+        }
+        if (modalOverlay != null) {
+            modalOverlay.setVisibility(View.GONE);
+        }
     }
 
     private void hideKeyboard() {
@@ -727,118 +794,125 @@ public class ArcSetupActivity extends Activity implements View.OnClickListener, 
 
     @Override
     public void onClick(View v) {
-        int id = v.getId();
-
-        if (id >= ID_WIFI_BASE && id < ID_WIFI_BASE + 50) {
-            int idx = id - ID_WIFI_BASE;
-            if (idx >= 0 && idx < scannedSsids.size()) {
-                String ssid = scannedSsids.get(idx);
-                boolean sec = scannedSecured.get(idx).booleanValue();
-                String conn = getConnectedWifiSsid();
-                if (conn != null && conn.equals(ssid)) {
-                    offlineSkipGoogleAccount = false;
-                    currentStep = 3;
-                    renderStep();
-                } else if (!sec) {
-                    connectToWifiNetwork(ssid, "", true);
-                } else {
-                    showWifiPasswordModal(ssid);
-                }
-            } else {
-                triggerWifiScan();
-            }
-            return;
-        }
-
-        if (id >= ID_LANG_BASE && id < ID_LANG_BASE + langLocales.length) {
-            applySystemLocale(langLocales[id - ID_LANG_BASE]);
-            return;
-        }
-
-        if (id == R.id.btn_dark_next) {
-            if (currentStep == 1) {
-                currentStep = 2;
-                renderStep();
-            } else if (currentStep == 6) {
+        try {
+            int id = v.getId();
+            if (id == 9999) {
                 completeProvisioningAndFinish();
+                return;
             }
-        } else if (id == R.id.btn_final_back) {
-            currentStep = 5;
-            renderStep();
-        } else if (id == R.id.btn_language) {
-            showLanguageModal();
-        } else if (id == R.id.btn_accessibility) {
-            try {
-                startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
-            } catch (Throwable ignored) {
-            }
-        } else if (id == R.id.btn_emergency) {
-            try {
-                Intent em = new Intent("com.android.phone.EmergencyDialer.DIAL");
-                em.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                startActivity(em);
-            } catch (Throwable e) {
-                try {
-                    startActivity(new Intent(Intent.ACTION_DIAL, Uri.parse("tel:")));
-                } catch (Throwable ignored) {
+
+            if (id >= ID_WIFI_BASE && id < ID_WIFI_BASE + 50) {
+                int idx = id - ID_WIFI_BASE;
+                if (idx >= 0 && idx < scannedSsids.size()) {
+                    String ssid = scannedSsids.get(idx);
+                    boolean sec = scannedSecured.get(idx).booleanValue();
+                    String conn = getConnectedWifiSsid();
+                    if (conn != null && conn.equals(ssid)) {
+                        offlineSkipGoogleAccount = false;
+                        currentStep = 3;
+                        renderStep();
+                    } else if (!sec) {
+                        connectToWifiNetwork(ssid, "", true);
+                    } else {
+                        showWifiPasswordModal(ssid);
+                    }
+                } else {
+                    triggerWifiScan();
                 }
+                return;
             }
-        } else if (id == R.id.btn_light_back) {
-            if (currentStep > 1) {
-                currentStep--;
-                renderStep();
+
+            if (id >= ID_LANG_BASE && id < ID_LANG_BASE + langLocales.length) {
+                applySystemLocale(langLocales[id - ID_LANG_BASE]);
+                return;
             }
-        } else if (id == R.id.btn_light_next) {
-            advanceFromLightStep();
-        } else if (id == R.id.btn_light_bottom_primary) {
-            if (currentStep == 2) {
-                showAllWifi = !showAllWifi;
-                renderStep();
-            } else if (currentStep == 4) {
-                launchScreenLockSetup();
-            } else {
-                advanceFromLightStep();
-            }
-        } else if (id == R.id.btn_light_bottom_secondary) {
-            if (currentStep == 2) {
-                enableMobileDataAndContinue();
-            } else if (currentStep == 4) {
+
+            if (id == R.id.btn_dark_next) {
+                if (currentStep == 1) {
+                    currentStep = 2;
+                    renderStep();
+                } else if (currentStep == 6) {
+                    completeProvisioningAndFinish();
+                }
+            } else if (id == R.id.btn_final_back) {
                 currentStep = 5;
                 renderStep();
-            }
-        } else if (id == R.id.btn_light_bottom_tertiary) {
-            if (currentStep == 2) {
-                offlineSkipGoogleAccount = true;
-                currentStep = 3;
+            } else if (id == R.id.btn_language) {
+                showLanguageModal();
+            } else if (id == R.id.btn_accessibility) {
+                try {
+                    startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
+                } catch (Throwable ignored) {
+                }
+            } else if (id == R.id.btn_emergency) {
+                try {
+                    Intent em = new Intent("com.android.phone.EmergencyDialer.DIAL");
+                    em.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(em);
+                } catch (Throwable e) {
+                    try {
+                        startActivity(new Intent(Intent.ACTION_DIAL, Uri.parse("tel:")));
+                    } catch (Throwable ignored) {
+                    }
+                }
+            } else if (id == R.id.btn_light_back) {
+                if (currentStep > 1) {
+                    currentStep--;
+                    renderStep();
+                }
+            } else if (id == R.id.btn_light_next) {
+                advanceFromLightStep();
+            } else if (id == R.id.btn_light_bottom_primary) {
+                if (currentStep == 2) {
+                    showAllWifi = !showAllWifi;
+                    renderStep();
+                } else if (currentStep == 4) {
+                    launchScreenLockSetup();
+                } else {
+                    advanceFromLightStep();
+                }
+            } else if (id == R.id.btn_light_bottom_secondary) {
+                if (currentStep == 2) {
+                    enableMobileDataAndContinue();
+                } else if (currentStep == 4) {
+                    currentStep = 5;
+                    renderStep();
+                }
+            } else if (id == R.id.btn_light_bottom_tertiary) {
+                if (currentStep == 2) {
+                    offlineSkipGoogleAccount = true;
+                    currentStep = 3;
+                    renderStep();
+                }
+            } else if (id == R.id.btn_modal_cancel) {
+                hideKeyboard();
+                modalOverlay.setVisibility(View.GONE);
+            } else if (id == R.id.btn_modal_confirm) {
+                String pwd = inputWifiPassword.getText().toString();
+                hideKeyboard();
+                modalOverlay.setVisibility(View.GONE);
+                connectToWifiNetwork(selectedWifiSsid, pwd, false);
+            } else if (id == ID_GOOGLE_ACCOUNT) {
+                launchGoogleAccountSignIn();
+            } else if (id == ID_GOOGLE_LOC) {
+                optLocationEnabled = !optLocationEnabled;
+                renderStep();
+            } else if (id == ID_GOOGLE_SCAN) {
+                optScanningEnabled = !optScanningEnabled;
+                renderStep();
+            } else if (id == ID_GOOGLE_BACKUP) {
+                optBackupEnabled = !optBackupEnabled;
+                renderStep();
+            } else if (id == ID_LOCK_PIN || id == ID_LOCK_PWD || id == ID_LOCK_PAT) {
+                launchScreenLockSetup();
+            } else if (id == ID_NAV_GESTURE) {
+                applyNavigationMode(true);
+                renderStep();
+            } else if (id == ID_NAV_THREE) {
+                applyNavigationMode(false);
                 renderStep();
             }
-        } else if (id == R.id.btn_modal_cancel) {
-            hideKeyboard();
-            modalOverlay.setVisibility(View.GONE);
-        } else if (id == R.id.btn_modal_confirm) {
-            String pwd = inputWifiPassword.getText().toString();
-            hideKeyboard();
-            modalOverlay.setVisibility(View.GONE);
-            connectToWifiNetwork(selectedWifiSsid, pwd, false);
-        } else if (id == ID_GOOGLE_ACCOUNT) {
-            launchGoogleAccountSignIn();
-        } else if (id == ID_GOOGLE_LOC) {
-            optLocationEnabled = !optLocationEnabled;
-            renderStep();
-        } else if (id == ID_GOOGLE_SCAN) {
-            optScanningEnabled = !optScanningEnabled;
-            renderStep();
-        } else if (id == ID_GOOGLE_BACKUP) {
-            optBackupEnabled = !optBackupEnabled;
-            renderStep();
-        } else if (id == ID_LOCK_PIN || id == ID_LOCK_PWD || id == ID_LOCK_PAT) {
-            launchScreenLockSetup();
-        } else if (id == ID_NAV_GESTURE) {
-            applyNavigationMode(true);
-            renderStep();
-        } else if (id == ID_NAV_THREE) {
-            applyNavigationMode(false);
-            renderStep();
+        } catch (Throwable ignored) {
         }
     }
 
