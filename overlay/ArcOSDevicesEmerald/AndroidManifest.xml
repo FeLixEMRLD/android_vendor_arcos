@@ -1,57 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.arcos.setupwizard"
-    android:versionCode="3"
-    android:versionName="1.0-ARCOS">
-
-    <uses-sdk
-        android:minSdkVersion="34"
-        android:targetSdkVersion="34" />
-
-    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
-    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" />
-    <uses-permission android:name="android.permission.STATUS_BAR" />
-    <uses-permission android:name="android.permission.CHANGE_CONFIGURATION" />
-    <uses-permission android:name="android.permission.CHANGE_OVERLAY_PACKAGES" />
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.NETWORK_SETTINGS" />
-    <uses-permission android:name="android.permission.NETWORK_SETUP_WIZARD" />
-    <uses-permission android:name="android.permission.OVERRIDE_WIFI_CONFIG" />
-    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
-    <uses-permission android:name="android.permission.MODIFY_PHONE_STATE" />
-    <uses-permission android:name="android.permission.GET_ACCOUNTS" />
-
-    <application
-        android:label="ArcOS Setup"
-        android:directBootAware="true"
-        android:allowBackup="false"
-        android:supportsRtl="true"
-        android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
-
-        <activity
-            android:name=".ArcSetupActivity"
-            android:exported="true"
-            android:directBootAware="true"
-            android:excludeFromRecents="true"
-            android:launchMode="singleTask"
-            android:screenOrientation="portrait"
-            android:configChanges="orientation|screenSize|keyboardHidden|locale|layoutDirection"
-            android:windowSoftInputMode="adjustResize"
-            android:immersive="true">
-
-            <intent-filter android:priority="1000">
-                <action android:name="android.intent.action.MAIN" />
-                <action android:name="android.intent.action.DEVICE_INITIALIZATION_WIZARD" />
-                <action android:name="android.intent.action.UPGRADE_SETUP" />
-                <category android:name="android.intent.category.HOME" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.SETUP_WIZARD" />
-            </intent-filter>
-        </activity>
-    </application>
+    package="com.arcos.overlay.emerald"
+    android:versionCode="1"
+    android:versionName="1.0">
+    <overlay android:targetPackage="android"
+             android:priority="999"
+             android:isStatic="true" />
+    <overlay
+        android:targetPackage="android"
+        android:priority="999"
+        android:isStatic="true" />
 </manifest>
