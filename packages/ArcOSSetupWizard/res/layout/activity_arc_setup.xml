@@ -4,11 +4,9 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="false"
-    android:background="@drawable/bg_arc_welcome">
+    android:background="@drawable/bg_arc_ambient">
 
-    <!-- ================================================================ -->
-    <!-- SCREEN A: DARK GRADIENT PAGE (Step 1 Welcome & Step 6 Final)     -->
-    <!-- ================================================================ -->
+    <!-- SCREEN A: DARK GRADIENT (Step 1 Welcome & Step 6 Final) -->
     <LinearLayout
         android:id="@+id/screen_dark"
         android:layout_width="match_parent"
@@ -27,7 +25,6 @@
             android:text="Hi, lets set up your"
             android:textColor="#FFFFFF"
             android:textSize="28sp"
-            android:fontFamily="sans-serif"
             android:gravity="center" />
 
         <TextView
@@ -39,16 +36,13 @@
             android:textColor="#FFFFFF"
             android:textSize="32sp"
             android:textStyle="bold"
-            android:fontFamily="sans-serif"
             android:gravity="center" />
 
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
-            android:orientation="horizontal"
-            android:gravity="center">
-
+            android:orientation="horizontal">
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -56,7 +50,6 @@
                 android:textColor="#FFFFFF"
                 android:textSize="14sp"
                 android:textStyle="bold" />
-
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -65,7 +58,6 @@
                 android:textSize="14sp" />
         </LinearLayout>
 
-        <!-- Summary Text shown on Step 6 Final Page -->
         <TextView
             android:id="@+id/dark_final_summary"
             android:layout_width="match_parent"
@@ -82,69 +74,57 @@
             android:layout_height="0dp"
             android:layout_weight="1" />
 
-        <!-- Signature Black Circular Up-Arrow Button -->
         <FrameLayout
             android:id="@+id/btn_dark_next"
             android:layout_width="86dp"
             android:layout_height="86dp"
             android:layout_marginBottom="48dp"
-            android:background="@drawable/bg_circle_black"
+            android:background="@drawable/bg_arc_button"
             android:clickable="true"
             android:focusable="true">
-
-            <ImageView
-                android:layout_width="32dp"
-                android:layout_height="32dp"
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:src="@drawable/ic_arrow_up_white" />
+                android:text="&#x2191;"
+                android:textColor="#FFFFFF"
+                android:textSize="32sp"
+                android:textStyle="bold" />
         </FrameLayout>
 
-        <!-- Step 1 Bottom Links: Language / Accessibility / Emergency Call -->
         <LinearLayout
             android:id="@+id/welcome_bottom_links"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:gravity="center_horizontal">
-
             <TextView
                 android:id="@+id/btn_language"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:paddingTop="6dp"
-                android:paddingBottom="6dp"
-                android:paddingLeft="16dp"
-                android:paddingRight="16dp"
+                android:padding="6dp"
                 android:text="Language"
                 android:textColor="#FFFFFF"
                 android:textSize="14sp"
                 android:clickable="true"
                 android:focusable="true" />
-
             <TextView
                 android:id="@+id/btn_accessibility"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:paddingTop="6dp"
-                android:paddingBottom="6dp"
-                android:paddingLeft="16dp"
-                android:paddingRight="16dp"
+                android:padding="6dp"
                 android:text="Accessibility"
                 android:textColor="#FFFFFF"
                 android:textSize="14sp"
                 android:clickable="true"
                 android:focusable="true" />
-
             <TextView
                 android:id="@+id/btn_emergency"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:paddingTop="6dp"
-                android:paddingBottom="6dp"
-                android:paddingLeft="16dp"
-                android:paddingRight="16dp"
+                android:padding="6dp"
                 android:text="Emergency call"
                 android:textColor="#FFFFFF"
                 android:textSize="14sp"
@@ -152,24 +132,20 @@
                 android:focusable="true" />
         </LinearLayout>
 
-        <!-- Step 6 Back Link -->
         <TextView
             android:id="@+id/btn_final_back"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:padding="10dp"
+            android:padding="8dp"
             android:text="Go back"
             android:textColor="#CCFFFFFF"
             android:textSize="14sp"
             android:visibility="gone"
             android:clickable="true"
             android:focusable="true" />
-
     </LinearLayout>
 
-    <!-- ================================================================ -->
-    <!-- SCREEN B: CLEAN LIGHT PAGE (Steps 2, 3, 4, 5 — Image 2 Design)   -->
-    <!-- ================================================================ -->
+    <!-- SCREEN B: LIGHT PAGE (Steps 2, 3, 4, 5 — Image 2 Design) -->
     <LinearLayout
         android:id="@+id/screen_light"
         android:layout_width="match_parent"
@@ -182,47 +158,45 @@
         android:paddingBottom="36dp"
         android:visibility="gone">
 
-        <!-- Top Navigation Header (Back button left, Circle Up-Arrow right) -->
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="52dp">
-
             <FrameLayout
                 android:id="@+id/btn_light_back"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:layout_alignParentLeft="true"
                 android:layout_centerVertical="true"
-                android:background="@drawable/bg_circle_outline_subtle"
                 android:clickable="true"
                 android:focusable="true">
-
-                <ImageView
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
                     android:layout_gravity="center"
-                    android:src="@drawable/ic_arrow_back_dark" />
+                    android:text="&#x2190;"
+                    android:textColor="#333333"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
             </FrameLayout>
-
             <FrameLayout
                 android:id="@+id/btn_light_next"
                 android:layout_width="46dp"
                 android:layout_height="46dp"
                 android:layout_alignParentRight="true"
                 android:layout_centerVertical="true"
-                android:background="@drawable/bg_circle_outline_dark"
                 android:clickable="true"
                 android:focusable="true">
-
-                <ImageView
-                    android:layout_width="22dp"
-                    android:layout_height="22dp"
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
                     android:layout_gravity="center"
-                    android:src="@drawable/ic_arrow_up_dark" />
+                    android:text="&#x2191;"
+                    android:textColor="#222222"
+                    android:textSize="22sp"
+                    android:textStyle="bold" />
             </FrameLayout>
         </RelativeLayout>
 
-        <!-- Page Title (Matches Image 2 Typography) -->
         <TextView
             android:id="@+id/light_title_line1"
             android:layout_width="wrap_content"
@@ -231,7 +205,6 @@
             android:text="Let's connect to a"
             android:textColor="#000000"
             android:textSize="26sp"
-            android:fontFamily="sans-serif"
             android:gravity="center" />
 
         <TextView
@@ -243,7 +216,6 @@
             android:textColor="#000000"
             android:textSize="28sp"
             android:textStyle="bold"
-            android:fontFamily="sans-serif"
             android:gravity="center" />
 
         <TextView
@@ -252,658 +224,36 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:layout_marginBottom="24dp"
-            android:text=""
             android:textColor="#555555"
             android:textSize="13sp"
             android:gravity="center" />
 
-        <!-- ============================================================ -->
-        <!-- STEP 2 PANEL: WI-FI NETWORKS CARD                            -->
-        <!-- ============================================================ -->
         <ScrollView
-            android:id="@+id/panel_step_wifi"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:scrollbars="none">
-
             <LinearLayout
+                android:id="@+id/card_list_container"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@drawable/bg_arc_light_card"
+                android:background="@drawable/bg_arc_card"
                 android:orientation="vertical"
                 android:paddingLeft="20dp"
                 android:paddingRight="20dp"
                 android:paddingTop="8dp"
-                android:paddingBottom="8dp">
-
-                <!-- Wi-Fi Row 0 -->
-                <LinearLayout
-                    android:id="@+id/wifi_row_0"
-                    android:layout_width="match_parent"
-                    android:layout_height="52dp"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:clickable="true"
-                    android:focusable="true">
-                    <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:src="@drawable/ic_wifi_signal" />
-                    <TextView
-                        android:id="@+id/wifi_ssid_0"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginLeft="16dp"
-                        android:text="Scanning..."
-                        android:textColor="#000000"
-                        android:textSize="15sp"
-                        android:singleLine="true" />
-                    <TextView
-                        android:id="@+id/wifi_status_0"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text=""
-                        android:textColor="#555555"
-                        android:textSize="12sp" />
-                </LinearLayout>
-
-                <View
-                    android:id="@+id/wifi_div_0"
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginLeft="36dp"
-                    android:layout_marginRight="12dp"
-                    android:background="#444444" />
-
-                <!-- Wi-Fi Row 1 -->
-                <LinearLayout
-                    android:id="@+id/wifi_row_1"
-                    android:layout_width="match_parent"
-                    android:layout_height="52dp"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:clickable="true"
-                    android:focusable="true">
-                    <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:src="@drawable/ic_wifi_signal" />
-                    <TextView
-                        android:id="@+id/wifi_ssid_1"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginLeft="16dp"
-                        android:text=""
-                        android:textColor="#000000"
-                        android:textSize="15sp"
-                        android:singleLine="true" />
-                    <TextView
-                        android:id="@+id/wifi_status_1"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text=""
-                        android:textColor="#555555"
-                        android:textSize="12sp" />
-                </LinearLayout>
-
-                <View
-                    android:id="@+id/wifi_div_1"
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginLeft="36dp"
-                    android:layout_marginRight="12dp"
-                    android:background="#444444"
-                    android:visibility="gone" />
-
-                <!-- Wi-Fi Row 2 -->
-                <LinearLayout
-                    android:id="@+id/wifi_row_2"
-                    android:layout_width="match_parent"
-                    android:layout_height="52dp"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:visibility="gone"
-                    android:clickable="true"
-                    android:focusable="true">
-                    <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:src="@drawable/ic_wifi_signal" />
-                    <TextView
-                        android:id="@+id/wifi_ssid_2"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginLeft="16dp"
-                        android:text=""
-                        android:textColor="#000000"
-                        android:textSize="15sp"
-                        android:singleLine="true" />
-                    <TextView
-                        android:id="@+id/wifi_status_2"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text=""
-                        android:textColor="#555555"
-                        android:textSize="12sp" />
-                </LinearLayout>
-
-                <View
-                    android:id="@+id/wifi_div_2"
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginLeft="36dp"
-                    android:layout_marginRight="12dp"
-                    android:background="#444444"
-                    android:visibility="gone" />
-
-                <!-- Wi-Fi Row 3 -->
-                <LinearLayout
-                    android:id="@+id/wifi_row_3"
-                    android:layout_width="match_parent"
-                    android:layout_height="52dp"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:visibility="gone"
-                    android:clickable="true"
-                    android:focusable="true">
-                    <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:src="@drawable/ic_wifi_signal" />
-                    <TextView
-                        android:id="@+id/wifi_ssid_3"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginLeft="16dp"
-                        android:text=""
-                        android:textColor="#000000"
-                        android:textSize="15sp"
-                        android:singleLine="true" />
-                    <TextView
-                        android:id="@+id/wifi_status_3"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text=""
-                        android:textColor="#555555"
-                        android:textSize="12sp" />
-                </LinearLayout>
-
-                <View
-                    android:id="@+id/wifi_div_3"
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginLeft="36dp"
-                    android:layout_marginRight="12dp"
-                    android:background="#444444"
-                    android:visibility="gone" />
-
-                <!-- Wi-Fi Row 4 -->
-                <LinearLayout
-                    android:id="@+id/wifi_row_4"
-                    android:layout_width="match_parent"
-                    android:layout_height="52dp"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:visibility="gone"
-                    android:clickable="true"
-                    android:focusable="true">
-                    <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:src="@drawable/ic_wifi_signal" />
-                    <TextView
-                        android:id="@+id/wifi_ssid_4"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginLeft="16dp"
-                        android:text=""
-                        android:textColor="#000000"
-                        android:textSize="15sp"
-                        android:singleLine="true" />
-                    <TextView
-                        android:id="@+id/wifi_status_4"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text=""
-                        android:textColor="#555555"
-                        android:textSize="12sp" />
-                </LinearLayout>
-
-                <View
-                    android:id="@+id/wifi_div_4"
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginLeft="36dp"
-                    android:layout_marginRight="12dp"
-                    android:background="#444444"
-                    android:visibility="gone" />
-
-                <!-- Wi-Fi Row 5 -->
-                <LinearLayout
-                    android:id="@+id/wifi_row_5"
-                    android:layout_width="match_parent"
-                    android:layout_height="52dp"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:visibility="gone"
-                    android:clickable="true"
-                    android:focusable="true">
-                    <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:src="@drawable/ic_wifi_signal" />
-                    <TextView
-                        android:id="@+id/wifi_ssid_5"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginLeft="16dp"
-                        android:text=""
-                        android:textColor="#000000"
-                        android:textSize="15sp"
-                        android:singleLine="true" />
-                    <TextView
-                        android:id="@+id/wifi_status_5"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text=""
-                        android:textColor="#555555"
-                        android:textSize="12sp" />
-                </LinearLayout>
-            </LinearLayout>
+                android:paddingBottom="8dp" />
         </ScrollView>
-
-        <!-- ============================================================ -->
-        <!-- STEP 3 PANEL: GOOGLE SETUP & PERMISSIONS CARD                -->
-        <!-- ============================================================ -->
-        <LinearLayout
-            android:id="@+id/panel_step_google"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@drawable/bg_arc_light_card"
-            android:orientation="vertical"
-            android:paddingLeft="20dp"
-            android:paddingRight="20dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
-            android:visibility="gone">
-
-            <!-- Google Account Sign-In Row -->
-            <LinearLayout
-                android:id="@+id/row_google_account"
-                android:layout_width="match_parent"
-                android:layout_height="60dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:clickable="true"
-                android:focusable="true">
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-                    <TextView
-                        android:id="@+id/txt_google_account_title"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Sign in to Google"
-                        android:textColor="#000000"
-                        android:textSize="15sp"
-                        android:textStyle="bold" />
-                    <TextView
-                        android:id="@+id/txt_google_account_sub"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Add your Google Account for Play Store &amp; sync"
-                        android:textColor="#555555"
-                        android:textSize="12sp" />
-                </LinearLayout>
-                <TextView
-                    android:id="@+id/status_google_account"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Sign in"
-                    android:textColor="#000000"
-                    android:textSize="13sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <View
-                android:id="@+id/div_google_account"
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="#444444" />
-
-            <!-- Location Services Permission Toggle -->
-            <LinearLayout
-                android:id="@+id/row_google_location"
-                android:layout_width="match_parent"
-                android:layout_height="58dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:clickable="true"
-                android:focusable="true">
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Use Location Services"
-                        android:textColor="#000000"
-                        android:textSize="15sp" />
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Allow apps &amp; system to estimate location"
-                        android:textColor="#555555"
-                        android:textSize="12sp" />
-                </LinearLayout>
-                <TextView
-                    android:id="@+id/toggle_location"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="ON"
-                    android:textColor="#000000"
-                    android:textSize="13sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="#444444" />
-
-            <!-- Wi-Fi & Bluetooth Scanning Toggle -->
-            <LinearLayout
-                android:id="@+id/row_google_scanning"
-                android:layout_width="match_parent"
-                android:layout_height="58dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:clickable="true"
-                android:focusable="true">
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Wi-Fi &amp; Bluetooth Scanning"
-                        android:textColor="#000000"
-                        android:textSize="15sp" />
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Improve location &amp; network accuracy"
-                        android:textColor="#555555"
-                        android:textSize="12sp" />
-                </LinearLayout>
-                <TextView
-                    android:id="@+id/toggle_scanning"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="ON"
-                    android:textColor="#000000"
-                    android:textSize="13sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="#444444" />
-
-            <!-- Usage & Diagnostics Toggle -->
-            <LinearLayout
-                android:id="@+id/row_google_backup"
-                android:layout_width="match_parent"
-                android:layout_height="58dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:clickable="true"
-                android:focusable="true">
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Device Backup &amp; Diagnostics"
-                        android:textColor="#000000"
-                        android:textSize="15sp" />
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Back up app data and system settings"
-                        android:textColor="#555555"
-                        android:textSize="12sp" />
-                </LinearLayout>
-                <TextView
-                    android:id="@+id/toggle_backup"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="ON"
-                    android:textColor="#000000"
-                    android:textSize="13sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-        </LinearLayout>
-
-        <!-- ============================================================ -->
-        <!-- STEP 4 PANEL: PASSWORD / SCREEN LOCK CARD                    -->
-        <!-- ============================================================ -->
-        <LinearLayout
-            android:id="@+id/panel_step_password"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@drawable/bg_arc_light_card"
-            android:orientation="vertical"
-            android:paddingLeft="20dp"
-            android:paddingRight="20dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
-            android:visibility="gone">
-
-            <LinearLayout
-                android:id="@+id/row_lock_pin"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:clickable="true"
-                android:focusable="true">
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="PIN"
-                    android:textColor="#000000"
-                    android:textSize="15sp" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Numeric code"
-                    android:textColor="#555555"
-                    android:textSize="12sp" />
-            </LinearLayout>
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="#444444" />
-
-            <LinearLayout
-                android:id="@+id/row_lock_password"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:clickable="true"
-                android:focusable="true">
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Password"
-                    android:textColor="#000000"
-                    android:textSize="15sp" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="High security"
-                    android:textColor="#555555"
-                    android:textSize="12sp" />
-            </LinearLayout>
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="#444444" />
-
-            <LinearLayout
-                android:id="@+id/row_lock_pattern"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:clickable="true"
-                android:focusable="true">
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Pattern"
-                    android:textColor="#000000"
-                    android:textSize="15sp" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Connect dots"
-                    android:textColor="#555555"
-                    android:textSize="12sp" />
-            </LinearLayout>
-        </LinearLayout>
-
-        <!-- ============================================================ -->
-        <!-- STEP 5 PANEL: NAVIGATION SETTINGS CARD                       -->
-        <!-- ============================================================ -->
-        <LinearLayout
-            android:id="@+id/panel_step_nav"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@drawable/bg_arc_light_card"
-            android:orientation="vertical"
-            android:paddingLeft="20dp"
-            android:paddingRight="20dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
-            android:visibility="gone">
-
-            <LinearLayout
-                android:id="@+id/row_nav_gesture"
-                android:layout_width="match_parent"
-                android:layout_height="64dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:clickable="true"
-                android:focusable="true">
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Gesture Navigation"
-                        android:textColor="#000000"
-                        android:textSize="15sp"
-                        android:textStyle="bold" />
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Swipe up to go Home, swipe edges for Back"
-                        android:textColor="#555555"
-                        android:textSize="12sp" />
-                </LinearLayout>
-                <TextView
-                    android:id="@+id/radio_nav_gesture"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Selected"
-                    android:textColor="#000000"
-                    android:textSize="13sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="#444444" />
-
-            <LinearLayout
-                android:id="@+id/row_nav_threebutton"
-                android:layout_width="match_parent"
-                android:layout_height="64dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:clickable="true"
-                android:focusable="true">
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="3-Button Navigation"
-                        android:textColor="#000000"
-                        android:textSize="15sp"
-                        android:textStyle="bold" />
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Back, Home, and Overview buttons at bottom"
-                        android:textColor="#555555"
-                        android:textSize="12sp" />
-                </LinearLayout>
-                <TextView
-                    android:id="@+id/radio_nav_threebutton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text=""
-                    android:textColor="#555555"
-                    android:textSize="13sp" />
-            </LinearLayout>
-        </LinearLayout>
 
         <View
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1" />
 
-        <!-- Bottom Action Links (Matches Image 2 Bottom Text Layout) -->
         <TextView
             android:id="@+id/btn_light_bottom_primary"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
-            android:paddingLeft="16dp"
-            android:paddingRight="16dp"
+            android:padding="8dp"
             android:text="View all networks"
             android:textColor="#111111"
             android:textSize="13sp"
@@ -916,10 +266,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
-            android:paddingLeft="16dp"
-            android:paddingRight="16dp"
+            android:padding="8dp"
             android:text="Continue with Mobile Data"
             android:textColor="#111111"
             android:textSize="13sp"
@@ -932,21 +279,15 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:paddingTop="6dp"
-            android:paddingBottom="6dp"
-            android:paddingLeft="16dp"
-            android:paddingRight="16dp"
+            android:padding="6dp"
             android:text="Continue without Wi-Fi"
             android:textColor="#555555"
             android:textSize="12sp"
             android:clickable="true"
             android:focusable="true" />
-
     </LinearLayout>
 
-    <!-- ================================================================ -->
-    <!-- INLINE MODAL OVERLAY (Wi-Fi Password & Language Picker)          -->
-    <!-- ================================================================ -->
+    <!-- INLINE MODAL OVERLAY (Wi-Fi Password & Language Picker) -->
     <FrameLayout
         android:id="@+id/modal_overlay"
         android:layout_width="match_parent"
@@ -957,22 +298,19 @@
         android:clickable="true"
         android:focusable="true">
 
-        <!-- MODAL 1: Wi-Fi Password Input Card -->
         <LinearLayout
-            android:id="@+id/modal_wifi_password"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:background="@drawable/bg_arc_light_card"
+            android:background="@drawable/bg_arc_card"
             android:orientation="vertical"
-            android:padding="24dp"
-            android:visibility="gone">
+            android:padding="24dp">
 
             <TextView
-                android:id="@+id/modal_wifi_title"
+                android:id="@+id/modal_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Connect to Network"
+                android:text="Connect"
                 android:textColor="#000000"
                 android:textSize="18sp"
                 android:textStyle="bold" />
@@ -990,14 +328,21 @@
                 android:inputType="textPassword" />
 
             <LinearLayout
+                android:id="@+id/modal_list_container"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
+                android:layout_marginTop="12dp"
+                android:orientation="vertical"
+                android:visibility="gone" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
                 android:orientation="horizontal"
                 android:gravity="right">
-
                 <TextView
-                    android:id="@+id/btn_wifi_cancel"
+                    android:id="@+id/btn_modal_cancel"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:padding="10dp"
@@ -1007,9 +352,8 @@
                     android:textStyle="bold"
                     android:clickable="true"
                     android:focusable="true" />
-
                 <TextView
-                    android:id="@+id/btn_wifi_connect"
+                    android:id="@+id/btn_modal_confirm"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginLeft="16dp"
@@ -1022,97 +366,5 @@
                     android:focusable="true" />
             </LinearLayout>
         </LinearLayout>
-
-        <!-- MODAL 2: System Language Picker Card -->
-        <LinearLayout
-            android:id="@+id/modal_language_picker"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:background="@drawable/bg_arc_light_card"
-            android:orientation="vertical"
-            android:padding="24dp"
-            android:visibility="gone">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                android:text="Select Language"
-                android:textColor="#000000"
-                android:textSize="18sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/lang_opt_en"
-                android:layout_width="match_parent"
-                android:layout_height="44dp"
-                android:gravity="center_vertical"
-                android:text="English (United States)"
-                android:textColor="#000000"
-                android:textSize="15sp"
-                android:clickable="true"
-                android:focusable="true" />
-
-            <TextView
-                android:id="@+id/lang_opt_fil"
-                android:layout_width="match_parent"
-                android:layout_height="44dp"
-                android:gravity="center_vertical"
-                android:text="Filipino (Pilipinas)"
-                android:textColor="#000000"
-                android:textSize="15sp"
-                android:clickable="true"
-                android:focusable="true" />
-
-            <TextView
-                android:id="@+id/lang_opt_es"
-                android:layout_width="match_parent"
-                android:layout_height="44dp"
-                android:gravity="center_vertical"
-                android:text="Español (Estados Unidos)"
-                android:textColor="#000000"
-                android:textSize="15sp"
-                android:clickable="true"
-                android:focusable="true" />
-
-            <TextView
-                android:id="@+id/lang_opt_ja"
-                android:layout_width="match_parent"
-                android:layout_height="44dp"
-                android:gravity="center_vertical"
-                android:text="日本語 (日本)"
-                android:textColor="#000000"
-                android:textSize="15sp"
-                android:clickable="true"
-                android:focusable="true" />
-
-            <TextView
-                android:id="@+id/lang_opt_zh"
-                android:layout_width="match_parent"
-                android:layout_height="44dp"
-                android:gravity="center_vertical"
-                android:text="中文 (简体)"
-                android:textColor="#000000"
-                android:textSize="15sp"
-                android:clickable="true"
-                android:focusable="true" />
-
-            <TextView
-                android:id="@+id/btn_lang_close"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="right"
-                android:layout_marginTop="8dp"
-                android:padding="8dp"
-                android:text="Close"
-                android:textColor="#555555"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:clickable="true"
-                android:focusable="true" />
-        </LinearLayout>
-
     </FrameLayout>
-
 </FrameLayout>
