@@ -8,15 +8,12 @@
         android:minSdkVersion="34"
         android:targetSdkVersion="34" />
 
-    <!-- Core Provisioning & UI Permissions -->
     <uses-permission android:name="android.permission.WRITE_SETTINGS" />
     <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" />
     <uses-permission android:name="android.permission.STATUS_BAR" />
     <uses-permission android:name="android.permission.CHANGE_CONFIGURATION" />
     <uses-permission android:name="android.permission.CHANGE_OVERLAY_PACKAGES" />
     <uses-permission android:name="android.permission.DISPATCH_PROVISIONING_MESSAGE" />
-
-    <!-- Real Wi-Fi & Network Setup Permissions -->
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -27,13 +24,9 @@
     <uses-permission android:name="android.permission.NETWORK_SETUP_WIZARD" />
     <uses-permission android:name="android.permission.OVERRIDE_WIFI_CONFIG" />
     <uses-permission android:name="android.permission.LOCAL_MAC_ADDRESS" />
-
-    <!-- Mobile Data & Emergency Call Permissions -->
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.MODIFY_PHONE_STATE" />
     <uses-permission android:name="android.permission.CALL_PRIVILEGED" />
-
-    <!-- Google Account & Multi-user Setup Permissions -->
     <uses-permission android:name="android.permission.GET_ACCOUNTS" />
     <uses-permission android:name="android.permission.MANAGE_ACCOUNTS" />
     <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS" />
@@ -68,6 +61,5 @@
                 <category android:name="android.intent.category.SETUP_WIZARD" />
             </intent-filter>
         </activity>
-
     </application>
 </manifest>
