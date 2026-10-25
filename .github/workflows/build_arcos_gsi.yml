@@ -26,6 +26,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
+            attr \
             e2fsprogs \
             xz-utils \
             curl \
@@ -89,8 +90,7 @@ jobs:
             -I "$ANDROID_JAR" \
             -F "$OUT_DIR/ArcOSSetupWizard-unaligned.apk"
 
-          cd "$OUT_DIR/dex"
-          zip -u -0 "$OUT_DIR/ArcOSSetupWizard-unaligned.apk" classes.dex
+          zip -qj "$OUT_DIR/ArcOSSetupWizard-unaligned.apk" "$OUT_DIR/dex/classes.dex"
 
           "$BUILD_TOOLS/zipalign" -f -p 4 \
             "$OUT_DIR/ArcOSSetupWizard-unaligned.apk" \
@@ -105,7 +105,7 @@ jobs:
             --out "$OUT_DIR/ArcOSSetupWizard.apk" \
             "$OUT_DIR/ArcOSSetupWizard-aligned.apk"
 
-          python3 -c 'import os, zipfile; from PIL import Image, ImageDraw; W, H, S = 1080, 2400, 2; img = Image.new("RGB", (W*S, H*S), (0, 0, 0)); draw = ImageDraw.Draw(img); cx, cy, R, r = (W*S)//2, (H*S)//2, 138*S, 56*S; draw.pieslice([cx-R, cy-R, cx+R, cy+R], start=90, end=360, fill=(255, 255, 255)); scx, scy = cx + R - r, cy + R - r; draw.ellipse([scx-r, scy-r, scx+r, scy+r], fill=(255, 255, 255)); final_img = img.resize((W, H), Image.Resampling.LANCZOS); os.makedirs("/tmp/bootanim/part0", exist_ok=True); final_img.save("/tmp/bootanim/part0/00000.png", "PNG"); final_img.save("/tmp/bootanim/part0/00001.png", "PNG"); open("/tmp/bootanim/desc.txt", "w", newline="\n").write("1080 2400 30\nc 0 0 part0\n"); zf = zipfile.ZipFile("/tmp/arcos_suw_build/bootanimation.zip", "w", compression=zipfile.ZIP_STORED); zf.write("/tmp/bootanim/desc.txt", "desc.txt"); zf.write("/tmp/bootanim/part0/00000.png", "part0/00000.png"); zf.write("/tmp/bootanim/part0/00001.png", "part0/00001.png"); zf.close()'
+          python3 -c 'import os, zipfile; from PIL import Image, ImageDraw; W, H, S = 1080, 2400, 2; img = Image.new("RGB", (W*S, H*S), (0, 0, 0)); draw = ImageDraw.Draw(img); cx, cy, R, r = (W*S)//2, (H*S)//2, 138*S, 56*S; draw.pieslice([cx-R, cy-R, cx+R, cy+R], start=90, end=360, fill=(255, 255, 255)); scx, scy = cx + R - r, cy + R - r; draw.ellipse([scx-r, scy-r, scx+r, scy+r], fill=(255, 255, 255)); final_img = img.resize((W, H), Image.Resampling.LANCZOS); os.makedirs("/tmp/bootanim/part0", exist_ok=True); final_img.save("/tmp/bootanim/part0/00000.png", "PNG"); final_img.save("/tmp/bootanim/part0/00001.png", "PNG"); open("/tmp/bootanim/desc.txt", "w", newline="\n").write("1080 2400 30\np 0 0 part0\n"); zf = zipfile.ZipFile("/tmp/arcos_suw_build/bootanimation.zip", "w", compression=zipfile.ZIP_STORED); zf.write("/tmp/bootanim/desc.txt", "desc.txt"); zf.write("/tmp/bootanim/part0/00000.png", "part0/00000.png"); zf.write("/tmp/bootanim/part0/00001.png", "part0/00001.png"); zf.close()'
 
       - name: Download Base Android 16 GSI & Inject ArcOS Organs
         run: |
@@ -137,25 +137,33 @@ jobs:
           sudo cp /tmp/arcos_suw_build/ArcOSSetupWizard.apk "$MOUNT_DIR/system/priv-app/ArcOSSetupWizard/ArcOSSetupWizard.apk"
           sudo chmod 0755 "$MOUNT_DIR/system/priv-app/ArcOSSetupWizard"
           sudo chmod 0644 "$MOUNT_DIR/system/priv-app/ArcOSSetupWizard/ArcOSSetupWizard.apk"
+          sudo setfattr -n security.selinux -v "u:object_r:system_file:s0" "$MOUNT_DIR/system/priv-app/ArcOSSetupWizard"
+          sudo setfattr -n security.selinux -v "u:object_r:system_file:s0" "$MOUNT_DIR/system/priv-app/ArcOSSetupWizard/ArcOSSetupWizard.apk"
 
           sudo cp "$GITHUB_WORKSPACE/packages/ArcOSSetupWizard/privapp-permissions-arcos.xml" "$MOUNT_DIR/system/etc/permissions/privapp-permissions-arcos.xml"
           sudo chmod 0644 "$MOUNT_DIR/system/etc/permissions/privapp-permissions-arcos.xml"
+          sudo setfattr -n security.selinux -v "u:object_r:system_file:s0" "$MOUNT_DIR/system/etc/permissions/privapp-permissions-arcos.xml"
 
           for MEDIA_DIR in "$MOUNT_DIR/system/product/media" "$MOUNT_DIR/system/media"; do
-            if [ -d "$MEDIA_DIR" ]; then
-              sudo cp /tmp/arcos_suw_build/bootanimation.zip "$MEDIA_DIR/bootanimation.zip"
-              sudo cp /tmp/arcos_suw_build/bootanimation.zip "$MEDIA_DIR/bootanimation-dark.zip"
-              sudo chmod 0644 "$MEDIA_DIR/bootanimation.zip" "$MEDIA_DIR/bootanimation-dark.zip"
-            fi
+            sudo mkdir -p "$MEDIA_DIR"
+            sudo chmod 0755 "$MEDIA_DIR"
+            sudo setfattr -n security.selinux -v "u:object_r:system_file:s0" "$MEDIA_DIR"
+            sudo cp /tmp/arcos_suw_build/bootanimation.zip "$MEDIA_DIR/bootanimation.zip"
+            sudo cp /tmp/arcos_suw_build/bootanimation.zip "$MEDIA_DIR/bootanimation-dark.zip"
+            sudo chmod 0644 "$MEDIA_DIR/bootanimation.zip" "$MEDIA_DIR/bootanimation-dark.zip"
+            sudo setfattr -n security.selinux -v "u:object_r:system_file:s0" "$MEDIA_DIR/bootanimation.zip"
+            sudo setfattr -n security.selinux -v "u:object_r:system_file:s0" "$MEDIA_DIR/bootanimation-dark.zip"
           done
 
           if [ -d "$GITHUB_WORKSPACE/prebuilt/bin" ]; then
             sudo cp "$GITHUB_WORKSPACE/prebuilt/bin/"* "$MOUNT_DIR/system/bin/" || true
             sudo chmod 0755 "$MOUNT_DIR/system/bin/arcos_"* || true
+            sudo setfattr -n security.selinux -v "u:object_r:system_file:s0" "$MOUNT_DIR/system/bin/arcos_"* || true
           fi
           if [ -d "$GITHUB_WORKSPACE/prebuilt/etc/init" ]; then
             sudo cp "$GITHUB_WORKSPACE/prebuilt/etc/init/"* "$MOUNT_DIR/system/etc/init/" || true
             sudo chmod 0644 "$MOUNT_DIR/system/etc/init/init.arcos.rc" || true
+            sudo setfattr -n security.selinux -v "u:object_r:system_file:s0" "$MOUNT_DIR/system/etc/init/init.arcos.rc" || true
           fi
 
           for PROP_FILE in \
@@ -177,10 +185,10 @@ jobs:
           e2fsck -fy system.img || true
           resize2fs -M system.img
           xz -T0 -1 system.img
-          mv system.img.xz "$GITHUB_WORKSPACE/ArcOS-V0.1-ALPHA-Android16-arm64-ab.img.xz"
+          mv system.img.xz "$GITHUB_WORKSPACE/ArcOS-V0-ALPHA-Android16-arm64-ab.img.xz"
 
       - name: Upload ArcOS GSI Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ArcOS-V0.1-ALPHA-Android16-GSI
-          path: ArcOS-V0.1-ALPHA-Android16-arm64-ab.img.xz
+          name: ArcOS-V0-ALPHA-Android16-GSI
+          path: ArcOS-V0-ALPHA-Android16-arm64-ab.img.xz
