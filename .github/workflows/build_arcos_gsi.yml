@@ -3,227 +3,204 @@ name: Build ArcOS GSI (Android 16)
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [ main, master ]
 
 jobs:
   build-gsi:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
-
     steps:
-      - name: Checkout ArcOS Repository
-        uses: actions/checkout@v4
-
-      - name: Free Disk Space
+      - name: Maximize Runner Disk Space
         run: |
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /opt/ghc
-          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf "/usr/local/share/boost"
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
           df -h
 
-      - name: Set up JDK 21 & Android SDK Build-Tools
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '21'
+      - name: Checkout ArcOS Vendor Repo
+        uses: actions/checkout@v4
 
-      - name: Install System Dependencies & Android SDK 34
+      - name: Install Required System Tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y xz-utils e2fsprogs zip unzip curl jq aapt
-          mkdir -p "$HOME/android-sdk/cmdline-tools"
-          curl -sSL https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o cmdline-tools.zip
-          unzip -q cmdline-tools.zip -d "$HOME/android-sdk/cmdline-tools"
-          mv "$HOME/android-sdk/cmdline-tools/cmdline-tools" "$HOME/android-sdk/cmdline-tools/latest"
-          yes | "$HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null
-          "$HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager" "platforms;android-34" "build-tools;34.0.0"
+          sudo apt-get install -y \
+            e2fsprogs \
+            xz-utils \
+            curl \
+            jq \
+            unzip \
+            zip \
+            openjdk-21-jdk \
+            python3 \
+            python3-pil
 
-      - name: Download Latest TrebleDroid Android 16 GApps GSI
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup Android SDK Build-Tools 34
         run: |
-          mkdir -p work
-          cd work
-          echo "Querying ponces/treble_aosp releases..."
-          DOWNLOAD_URL=$(curl -sL -H "Authorization: Bearer $GH_TOKEN" \
-            https://api.github.com/repos/ponces/treble_aosp/releases | \
-            jq -r '.[].assets[] | select(.name | test("^aosp-arm64-ab-gapps-16\\.0-.*\\.img\\.xz$")) | .browser_download_url' | head -n 1)
+          mkdir -p "$HOME/android-sdk"
+          cd "$HOME/android-sdk"
+          curl -sSL https://dl.google.com/android/repository/build-tools_r34-linux.zip -o build-tools.zip
+          unzip -q build-tools.zip
+          mv android-14 build-tools-34
+          curl -sSL https://dl.google.com/android/repository/platform-34-ext7_r02.zip -o platform.zip
+          unzip -q platform.zip
+          mv android-UpsideDownCakePrivacySandbox platform-34
+          curl -sSL https://raw.githubusercontent.com/LineageOS/android_build/lineage-21.0/target/product/security/platform.pk8 -o platform.pk8
+          curl -sSL https://raw.githubusercontent.com/LineageOS/android_build/lineage-21.0/target/product/security/platform.x509.pem -o platform.x509.pem
 
-          if [ -z "$DOWNLOAD_URL" ] || [ "$DOWNLOAD_URL" = "null" ]; then
-            echo "Error: Could not find Android 16 GApps GSI asset!"
-            exit 1
-          fi
-
-          echo "Downloading: $DOWNLOAD_URL"
-          curl -L "$DOWNLOAD_URL" -o system.img.xz
-          echo "Decompressing system.img.xz..."
-          xz -d -T0 system.img.xz
-          ls -lh system.img
-
-      - name: Build ArcOSSetupWizard (Native SDK 34 System Organ)
+      - name: Compile ArcOSSetupWizard & Static Bootanimation
         run: |
-          export WORKSPACE="$GITHUB_WORKSPACE"
-          export ANDROID_JAR="$HOME/android-sdk/platforms/android-34/android.jar"
-          export BUILD_TOOLS="$HOME/android-sdk/build-tools/34.0.0"
+          BUILD_TOOLS="$HOME/android-sdk/build-tools-34"
+          ANDROID_JAR="$HOME/android-sdk/platform-34/android.jar"
+          KEYS_DIR="$HOME/android-sdk"
+          APP_DIR="$GITHUB_WORKSPACE/packages/ArcOSSetupWizard"
+          OUT_DIR="/tmp/arcos_suw_build"
 
-          mkdir -p "$WORKSPACE/keys"
-          curl -sL https://raw.githubusercontent.com/aosp-mirror/platform_build/master/target/product/security/platform.pk8 -o "$WORKSPACE/keys/platform.pk8"
-          curl -sL https://raw.githubusercontent.com/aosp-mirror/platform_build/master/target/product/security/platform.x509.pem -o "$WORKSPACE/keys/platform.x509.pem"
+          rm -rf "$OUT_DIR"
+          mkdir -p "$OUT_DIR/gen" "$OUT_DIR/obj" "$OUT_DIR/dex"
 
-          cd "$WORKSPACE/packages/ArcOSSetupWizard"
-          rm -rf build
-          mkdir -p build/gen build/obj build/apk
+          "$BUILD_TOOLS/aapt" package -f -m \
+            --min-sdk-version 34 \
+            --target-sdk-version 34 \
+            -J "$OUT_DIR/gen" \
+            -M "$APP_DIR/AndroidManifest.xml" \
+            -S "$APP_DIR/res" \
+            -I "$ANDROID_JAR"
 
-          echo "1. Generating R.java with SDK 34..."
-          aapt package -f -m -J build/gen \
-            --min-sdk-version 34 --target-sdk-version 34 \
-            -M AndroidManifest.xml -S res -I "$ANDROID_JAR"
-
-          echo "2. Compiling Java sources..."
           javac -source 8 -target 8 \
             -bootclasspath "$ANDROID_JAR" \
             -classpath "$ANDROID_JAR" \
-            -d build/obj \
-            build/gen/com/arcos/setupwizard/R.java \
-            src/com/arcos/setupwizard/ArcSetupActivity.java
+            -d "$OUT_DIR/obj" \
+            $(find "$OUT_DIR/gen" "$APP_DIR/src" -name "*.java")
 
-          echo "3. Running D8 dexer (min-api 34)..."
-          "$BUILD_TOOLS/d8" --min-api 34 --lib "$ANDROID_JAR" \
-            --output build/apk/ \
-            build/obj/com/arcos/setupwizard/*.class
+          "$BUILD_TOOLS/d8" \
+            --lib "$ANDROID_JAR" \
+            --min-api 34 \
+            --output "$OUT_DIR/dex" \
+            $(find "$OUT_DIR/obj" -name "*.class")
 
-          echo "4. Packaging APK with uncompressed resources.arsc (-0 arsc)..."
-          aapt package -f -0 arsc \
-            --min-sdk-version 34 --target-sdk-version 34 \
-            -M AndroidManifest.xml -S res -I "$ANDROID_JAR" \
-            -F build/ArcOSSetupWizard.unaligned.apk
-          zip -uj build/ArcOSSetupWizard.unaligned.apk build/apk/classes.dex
+          "$BUILD_TOOLS/aapt" package -f \
+            --min-sdk-version 34 \
+            --target-sdk-version 34 \
+            -0 arsc \
+            -M "$APP_DIR/AndroidManifest.xml" \
+            -S "$APP_DIR/res" \
+            -I "$ANDROID_JAR" \
+            -F "$OUT_DIR/ArcOSSetupWizard-unaligned.apk"
 
-          echo "5. Page-aligning APK (4-byte alignment)..."
+          cd "$OUT_DIR/dex"
+          zip -u -0 "$OUT_DIR/ArcOSSetupWizard-unaligned.apk" classes.dex
+
           "$BUILD_TOOLS/zipalign" -f -p 4 \
-            build/ArcOSSetupWizard.unaligned.apk \
-            build/ArcOSSetupWizard.aligned.apk
+            "$OUT_DIR/ArcOSSetupWizard-unaligned.apk" \
+            "$OUT_DIR/ArcOSSetupWizard-aligned.apk"
 
-          echo "6. Signing APK with platform certificate..."
           "$BUILD_TOOLS/apksigner" sign \
-            --key "$WORKSPACE/keys/platform.pk8" \
-            --cert "$WORKSPACE/keys/platform.x509.pem" \
+            --key "$KEYS_DIR/platform.pk8" \
+            --cert "$KEYS_DIR/platform.x509.pem" \
             --v1-signing-enabled true \
             --v2-signing-enabled true \
             --v3-signing-enabled true \
-            --out build/ArcOSSetupWizard.apk \
-            build/ArcOSSetupWizard.aligned.apk
+            --out "$OUT_DIR/ArcOSSetupWizard.apk" \
+            "$OUT_DIR/ArcOSSetupWizard-aligned.apk"
 
-          "$BUILD_TOOLS/apksigner" verify -v build/ArcOSSetupWizard.apk
-          ls -lh build/ArcOSSetupWizard.apk
+          python3 -c '
+          import os, zipfile
+          from PIL import Image, ImageDraw
+          W, H, S = 1080, 2400, 2
+          img = Image.new("RGB", (W*S, H*S), (0, 0, 0))
+          draw = ImageDraw.Draw(img)
+          cx, cy, R, r = (W*S)//2, (H*S)//2, 138*S, 56*S
+          draw.pieslice([cx-R, cy-R, cx+R, cy+R], start=90, end=360, fill=(255, 255, 255))
+          scx, scy = cx + R - r, cy + R - r
+          draw.ellipse([scx-r, scy-r, scx+r, scy+r], fill=(255, 255, 255))
+          final_img = img.resize((W, H), Image.Resampling.LANCZOS)
+          os.makedirs("/tmp/bootanim/part0", exist_ok=True)
+          final_img.save("/tmp/bootanim/part0/00000.png", "PNG")
+          final_img.save("/tmp/bootanim/part0/00001.png", "PNG")
+          open("/tmp/bootanim/desc.txt", "w", newline="\n").write("1080 2400 30\nc 0 0 part0\n")
+          zf = zipfile.ZipFile("/tmp/arcos_suw_build/bootanimation.zip", "w", compression=zipfile.ZIP_STORED)
+          zf.write("/tmp/bootanim/desc.txt", "desc.txt")
+          zf.write("/tmp/bootanim/part0/00000.png", "part0/00000.png")
+          zf.write("/tmp/bootanim/part0/00001.png", "part0/00001.png")
+          zf.close()
+          '
 
-      - name: Mount & Customize ArcOS System Image
+      - name: Download Base Android 16 GSI & Inject ArcOS Organs
         run: |
-          export WORKSPACE="$GITHUB_WORKSPACE"
-          cd "$WORKSPACE/work"
+          mkdir -p /tmp/gsi_work
+          cd /tmp/gsi_work
 
-          echo "Expanding system.img by 1536MB..."
-          dd if=/dev/zero bs=1M count=1536 >> system.img
-          sudo e2fsck -fy system.img || true
-          sudo resize2fs system.img
-          sudo e2fsck -fy -E unshare_blocks system.img || true
-          sudo e2fsck -fy system.img || true
+          REL_JSON=$(curl -sSL https://api.github.com/repos/ponces/treble_aosp/releases)
+          DL_URL=$(echo "$REL_JSON" | jq -r '.[].assets[] | select(.name | test("^aosp-arm64-ab-gapps-16\\.0-.*\\.img\\.xz$")) | .browser_download_url' | head -n 1)
+          echo "Downloading Base GSI: $DL_URL"
+          curl -L "$DL_URL" -o system.img.xz
+          xz -d system.img.xz
 
-          export MOUNT_DIR="$WORKSPACE/work/mnt"
-          mkdir -p "$MOUNT_DIR"
+          dd if=/dev/zero bs=1M count=256 >> system.img
+          e2fsck -fy system.img || true
+          resize2fs system.img
+          e2fsck -fy -E unshare_blocks system.img || true
+
+          MOUNT_DIR="/mnt/arcos_system"
+          sudo mkdir -p "$MOUNT_DIR"
           sudo mount -o loop,rw system.img "$MOUNT_DIR"
 
-          echo "=== Removing Stock & GApps SetupWizards Across All Partitions ==="
           sudo find "$MOUNT_DIR" -maxdepth 5 -type d \( \
             -iname "*SetupWizard*" -o \
             -iname "Provision" -o \
             -iname "*OneTimeInitializer*" \
-          \) -print -exec sudo rm -rf {} + || true
+          \) -exec sudo rm -rf {} + || true
 
-          echo "=== Installing ArcOSSetupWizard as Native System Organ ==="
           sudo mkdir -p "$MOUNT_DIR/system/priv-app/ArcOSSetupWizard"
-          sudo cp "$WORKSPACE/packages/ArcOSSetupWizard/build/ArcOSSetupWizard.apk" \
-            "$MOUNT_DIR/system/priv-app/ArcOSSetupWizard/ArcOSSetupWizard.apk"
+          sudo cp /tmp/arcos_suw_build/ArcOSSetupWizard.apk "$MOUNT_DIR/system/priv-app/ArcOSSetupWizard/ArcOSSetupWizard.apk"
           sudo chmod 0755 "$MOUNT_DIR/system/priv-app/ArcOSSetupWizard"
           sudo chmod 0644 "$MOUNT_DIR/system/priv-app/ArcOSSetupWizard/ArcOSSetupWizard.apk"
-          sudo chcon -R u:object_r:system_file:s0 "$MOUNT_DIR/system/priv-app/ArcOSSetupWizard" || true
 
-          sudo mkdir -p "$MOUNT_DIR/system/etc/permissions"
-          sudo cp "$WORKSPACE/packages/ArcOSSetupWizard/privapp-permissions-arcos.xml" \
-            "$MOUNT_DIR/system/etc/permissions/privapp-permissions-arcos.xml"
+          sudo cp "$GITHUB_WORKSPACE/packages/ArcOSSetupWizard/privapp-permissions-arcos.xml" "$MOUNT_DIR/system/etc/permissions/privapp-permissions-arcos.xml"
           sudo chmod 0644 "$MOUNT_DIR/system/etc/permissions/privapp-permissions-arcos.xml"
-          sudo chcon u:object_r:system_file:s0 "$MOUNT_DIR/system/etc/permissions/privapp-permissions-arcos.xml" || true
 
-          echo "=== Installing ArcOS Init Scripts ==="
-          if [ -f "$WORKSPACE/prebuilt/bin/arcos_init.sh" ]; then
-            sudo cp "$WORKSPACE/prebuilt/bin/arcos_init.sh" "$MOUNT_DIR/system/bin/arcos_init.sh"
-            sudo chmod 0755 "$MOUNT_DIR/system/bin/arcos_init.sh"
-            sudo chown 0:2000 "$MOUNT_DIR/system/bin/arcos_init.sh"
-            sudo chcon u:object_r:system_file:s0 "$MOUNT_DIR/system/bin/arcos_init.sh" || true
+          for MEDIA_DIR in "$MOUNT_DIR/system/product/media" "$MOUNT_DIR/system/media"; do
+            if [ -d "$MEDIA_DIR" ]; then
+              sudo cp /tmp/arcos_suw_build/bootanimation.zip "$MEDIA_DIR/bootanimation.zip"
+              sudo cp /tmp/arcos_suw_build/bootanimation.zip "$MEDIA_DIR/bootanimation-dark.zip"
+              sudo chmod 0644 "$MEDIA_DIR/bootanimation.zip" "$MEDIA_DIR/bootanimation-dark.zip"
+            fi
+          done
+
+          if [ -d "$GITHUB_WORKSPACE/prebuilt/bin" ]; then
+            sudo cp "$GITHUB_WORKSPACE/prebuilt/bin/"* "$MOUNT_DIR/system/bin/" || true
+            sudo chmod 0755 "$MOUNT_DIR/system/bin/arcos_"* || true
+          fi
+          if [ -d "$GITHUB_WORKSPACE/prebuilt/etc/init" ]; then
+            sudo cp "$GITHUB_WORKSPACE/prebuilt/etc/init/"* "$MOUNT_DIR/system/etc/init/" || true
+            sudo chmod 0644 "$MOUNT_DIR/system/etc/init/init.arcos.rc" || true
           fi
 
-          if [ -f "$WORKSPACE/prebuilt/bin/arcos_udfps.sh" ]; then
-            sudo cp "$WORKSPACE/prebuilt/bin/arcos_udfps.sh" "$MOUNT_DIR/system/bin/arcos_udfps.sh"
-            sudo chmod 0755 "$MOUNT_DIR/system/bin/arcos_udfps.sh"
-            sudo chown 0:2000 "$MOUNT_DIR/system/bin/arcos_udfps.sh"
-            sudo chcon u:object_r:system_file:s0 "$MOUNT_DIR/system/bin/arcos_udfps.sh" || true
-          fi
-
-          if [ -f "$WORKSPACE/prebuilt/etc/init/init.arcos.rc" ]; then
-            sudo cp "$WORKSPACE/prebuilt/etc/init/init.arcos.rc" "$MOUNT_DIR/system/etc/init/init.arcos.rc"
-            sudo chmod 0644 "$MOUNT_DIR/system/etc/init/init.arcos.rc"
-            sudo chown 0:0 "$MOUNT_DIR/system/etc/init/init.arcos.rc"
-            sudo chcon u:object_r:system_file:s0 "$MOUNT_DIR/system/etc/init/init.arcos.rc" || true
-          fi
-
-          echo "=== Patching build.prop Files Across All Partitions ==="
           for PROP_FILE in \
             "$MOUNT_DIR/system/build.prop" \
             "$MOUNT_DIR/system/product/etc/build.prop" \
             "$MOUNT_DIR/system/system_ext/etc/build.prop"; do
             if [ -f "$PROP_FILE" ]; then
-              echo "Patching $PROP_FILE..."
-              sudo sed -i '/ro.sf.lcd_density/d' "$PROP_FILE"
-              sudo sed -i '/persist.sys.sf.lcd_density/d' "$PROP_FILE"
-              sudo sed -i '/ro.control_privapp_permissions/d' "$PROP_FILE"
-              sudo sed -i '/ro.setupwizard.mode/d' "$PROP_FILE"
-              sudo sed -i '/ro.adb.secure/d' "$PROP_FILE"
-              sudo sed -i '/ro.debuggable/d' "$PROP_FILE"
-
-              cat << 'EOF' | sudo tee -a "$PROP_FILE" > /dev/null
-
-          # ArcOS Core Overrides
-          ro.sf.lcd_density=462
-          persist.sys.sf.lcd_density=462
-          ro.control_privapp_permissions=log
-          ro.setupwizard.mode=OPTIONAL
-          ro.adb.secure=0
-          ro.debuggable=1
-          EOF
+              sudo sed -i '/^ro\.build\.display\.id=/d' "$PROP_FILE"
+              sudo sed -i '/^ro\.setupwizard\.mode=/d' "$PROP_FILE"
+              sudo sed -i '/^ro\.control_privapp_permissions=/d' "$PROP_FILE"
+              sudo sed -i '/^ro\.sf\.lcd_density=/d' "$PROP_FILE"
+              sudo sed -i '/^persist\.sys\.sf\.lcd_density=/d' "$PROP_FILE"
+              printf "\n" | sudo tee -a "$PROP_FILE" > /dev/null
+              cat "$GITHUB_WORKSPACE/config/system.prop" | sudo tee -a "$PROP_FILE" > /dev/null
             fi
           done
 
-          if [ -f "$WORKSPACE/config/system.prop" ]; then
-            cat "$WORKSPACE/config/system.prop" | sudo tee -a "$MOUNT_DIR/system/build.prop" > /dev/null
-          fi
-
-          sync
           sudo umount "$MOUNT_DIR"
+          e2fsck -fy system.img || true
+          resize2fs -M system.img
+          xz -T0 -1 system.img
+          mv system.img.xz "$GITHUB_WORKSPACE/ArcOS-V0.1-ALPHA-Android16-arm64-ab.img.xz"
 
-          echo "=== Shrinking & Packaging Final Image ==="
-          sudo e2fsck -fy system.img || true
-          sudo resize2fs -M system.img
-          sudo e2fsck -fy system.img || true
-
-          zip -v9 ArcOS-V0.1-ALPHA-16.0-emerald-DSU.zip system.img
-          ls -lh ArcOS-V0.1-ALPHA-16.0-emerald-DSU.zip
-
-      - name: Upload ArcOS DSU Artifact
+      - name: Upload ArcOS GSI Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ArcOS-V0.1-ALPHA-16.0-emerald-DSU
-          path: work/ArcOS-V0.1-ALPHA-16.0-emerald-DSU.zip
-          retention-days: 7
+          name: ArcOS-V0.1-ALPHA-Android16-GSI
+          path: ArcOS-V0.1-ALPHA-Android16-arm64-ab.img.xz
