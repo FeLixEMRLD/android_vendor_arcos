@@ -3,6 +3,7 @@
 # ==========================================
 
 # ArcOS Identity
+ro.build.display.id=ArcOS V0.1-ALPHA
 ro.arcos.version=V0.1-ALPHA
 ro.arcos.device=emerald
 ro.arcos.build.version=16.0
