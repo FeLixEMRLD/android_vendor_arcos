@@ -38,14 +38,14 @@ jobs:
 
       - name: Setup Android SDK Build-Tools 34
         run: |
-          mkdir -p "$HOME/android-sdk"
+          mkdir -p "$HOME/android-sdk/bt_tmp" "$HOME/android-sdk/pf_tmp"
           cd "$HOME/android-sdk"
           curl -sSL https://dl.google.com/android/repository/build-tools_r34-linux.zip -o build-tools.zip
-          unzip -q build-tools.zip
-          mv android-14 build-tools-34
+          unzip -q build-tools.zip -d bt_tmp
+          mv bt_tmp/* build-tools-34
           curl -sSL https://dl.google.com/android/repository/platform-34-ext7_r02.zip -o platform.zip
-          unzip -q platform.zip
-          mv android-UpsideDownCakePrivacySandbox platform-34
+          unzip -q platform.zip -d pf_tmp
+          mv pf_tmp/* platform-34
           curl -sSL https://raw.githubusercontent.com/LineageOS/android_build/lineage-21.0/target/product/security/platform.pk8 -o platform.pk8
           curl -sSL https://raw.githubusercontent.com/LineageOS/android_build/lineage-21.0/target/product/security/platform.x509.pem -o platform.x509.pem
 
@@ -105,27 +105,7 @@ jobs:
             --out "$OUT_DIR/ArcOSSetupWizard.apk" \
             "$OUT_DIR/ArcOSSetupWizard-aligned.apk"
 
-          python3 -c '
-          import os, zipfile
-          from PIL import Image, ImageDraw
-          W, H, S = 1080, 2400, 2
-          img = Image.new("RGB", (W*S, H*S), (0, 0, 0))
-          draw = ImageDraw.Draw(img)
-          cx, cy, R, r = (W*S)//2, (H*S)//2, 138*S, 56*S
-          draw.pieslice([cx-R, cy-R, cx+R, cy+R], start=90, end=360, fill=(255, 255, 255))
-          scx, scy = cx + R - r, cy + R - r
-          draw.ellipse([scx-r, scy-r, scx+r, scy+r], fill=(255, 255, 255))
-          final_img = img.resize((W, H), Image.Resampling.LANCZOS)
-          os.makedirs("/tmp/bootanim/part0", exist_ok=True)
-          final_img.save("/tmp/bootanim/part0/00000.png", "PNG")
-          final_img.save("/tmp/bootanim/part0/00001.png", "PNG")
-          open("/tmp/bootanim/desc.txt", "w", newline="\n").write("1080 2400 30\nc 0 0 part0\n")
-          zf = zipfile.ZipFile("/tmp/arcos_suw_build/bootanimation.zip", "w", compression=zipfile.ZIP_STORED)
-          zf.write("/tmp/bootanim/desc.txt", "desc.txt")
-          zf.write("/tmp/bootanim/part0/00000.png", "part0/00000.png")
-          zf.write("/tmp/bootanim/part0/00001.png", "part0/00001.png")
-          zf.close()
-          '
+          python3 -c 'import os, zipfile; from PIL import Image, ImageDraw; W, H, S = 1080, 2400, 2; img = Image.new("RGB", (W*S, H*S), (0, 0, 0)); draw = ImageDraw.Draw(img); cx, cy, R, r = (W*S)//2, (H*S)//2, 138*S, 56*S; draw.pieslice([cx-R, cy-R, cx+R, cy+R], start=90, end=360, fill=(255, 255, 255)); scx, scy = cx + R - r, cy + R - r; draw.ellipse([scx-r, scy-r, scx+r, scy+r], fill=(255, 255, 255)); final_img = img.resize((W, H), Image.Resampling.LANCZOS); os.makedirs("/tmp/bootanim/part0", exist_ok=True); final_img.save("/tmp/bootanim/part0/00000.png", "PNG"); final_img.save("/tmp/bootanim/part0/00001.png", "PNG"); open("/tmp/bootanim/desc.txt", "w", newline="\n").write("1080 2400 30\nc 0 0 part0\n"); zf = zipfile.ZipFile("/tmp/arcos_suw_build/bootanimation.zip", "w", compression=zipfile.ZIP_STORED); zf.write("/tmp/bootanim/desc.txt", "desc.txt"); zf.write("/tmp/bootanim/part0/00000.png", "part0/00000.png"); zf.write("/tmp/bootanim/part0/00001.png", "part0/00001.png"); zf.close()'
 
       - name: Download Base Android 16 GSI & Inject ArcOS Organs
         run: |
